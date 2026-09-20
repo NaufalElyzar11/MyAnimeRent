@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "432957892640",
+    "project_id": "myanimerent",
+    "storage_bucket": "myanimerent.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:432957892640:android:7ad6bba4b76afbee737445",
+        "android_client_info": {
+          "package_name": "com.example.MyAnimeRent"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "432957892640-3s0ali57p72ffeluc3al1k7okk3iad4a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDy5y6fmGHwv0Gi4zpVBPzOIZNmuBXJ2JA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "432957892640-3s0ali57p72ffeluc3al1k7okk3iad4a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:432957892640:android:7ad6bba4b76afbee737445",
+        "android_client_info": {
+          "package_name": "com.example.myanimerent"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "432957892640-3s0ali57p72ffeluc3al1k7okk3iad4a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDy5y6fmGHwv0Gi4zpVBPzOIZNmuBXJ2JA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "432957892640-3s0ali57p72ffeluc3al1k7okk3iad4a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
