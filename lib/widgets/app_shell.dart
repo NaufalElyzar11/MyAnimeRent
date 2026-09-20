@@ -16,7 +16,9 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(child: child),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _getSelectedIndex(context),

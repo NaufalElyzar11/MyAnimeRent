@@ -49,6 +49,7 @@ class AppThemeData {
         onSurface: AppColors.darkGrey,
       ),
       scaffoldBackgroundColor: AppColors.lightBg,
+      canvasColor: AppColors.lightBg,
       textTheme: GoogleFonts.poppinsTextTheme().apply(
         bodyColor: AppColors.darkGrey,
         displayColor: AppColors.darkGrey,
@@ -122,6 +123,7 @@ class AppThemeData {
         surface: AppColors.darkSurface,
       ),
       scaffoldBackgroundColor: AppColors.darkBg,
+      canvasColor: AppColors.darkBg,
       textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.darkBg,
