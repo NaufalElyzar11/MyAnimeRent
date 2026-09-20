@@ -8,6 +8,7 @@ class RentalTransaction {
   final DateTime endDate;
   final double totalPrice;
   final RentalStatus status;
+  final String? size;
   final DateTime createdAt;
 
   RentalTransaction({
@@ -18,6 +19,7 @@ class RentalTransaction {
     required this.endDate,
     required this.totalPrice,
     required this.status,
+    this.size,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -33,6 +35,7 @@ class RentalTransaction {
         (e) => e.name == (map['status'] ?? 'pending'),
         orElse: () => RentalStatus.pending,
       ),
+      size: map['size'] as String?,
       createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
     );
   }
@@ -45,6 +48,7 @@ class RentalTransaction {
       'endDate': endDate.toIso8601String(),
       'totalPrice': totalPrice,
       'status': status.name,
+      if (size != null) 'size': size,
       'createdAt': createdAt.toIso8601String(),
     };
   }

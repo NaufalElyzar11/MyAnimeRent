@@ -46,69 +46,178 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
                   separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final item = provider.rentals[index];
-                    final formatter = DateFormat('dd MMM yyyy');
+                    final dateFormatter = DateFormat('dd MMM yyyy');
+                    final priceFormatter = NumberFormat('#,###', 'id_ID');
+
+                    Color statusBgColor;
+                    Color statusTextColor;
+                    String statusLabel;
+
+                    switch (item.status.name) {
+                      case 'active':
+                        statusBgColor = Colors.blue.withValues(alpha: 0.15);
+                        statusTextColor = Colors.blue.shade700;
+                        statusLabel = 'Active';
+                        break;
+                      case 'completed':
+                        statusBgColor = Colors.green.withValues(alpha: 0.15);
+                        statusTextColor = Colors.green.shade700;
+                        statusLabel = 'Completed';
+                        break;
+                      case 'cancelled':
+                        statusBgColor = Colors.red.withValues(alpha: 0.15);
+                        statusTextColor = Colors.red.shade700;
+                        statusLabel = 'Cancelled';
+                        break;
+                      case 'pending':
+                      default:
+                        statusBgColor = Colors.orange.withValues(alpha: 0.15);
+                        statusTextColor = Colors.orange.shade800;
+                        statusLabel = 'Pending';
+                        break;
+                    }
 
                     return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(14),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Status Header
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: statusBgColor,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    statusLabel,
+                                    style: TextStyle(
+                                      color: statusTextColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                if (item.totalPrice > 0)
+                                  Text(
+                                    'Rp ${priceFormatter.format(item.totalPrice.toInt())}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.primary,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                   child: CachedNetworkImage(
                                     imageUrl: item.costume.imageUrls.isNotEmpty
                                         ? item.costume.imageUrls.first
                                         : '',
-                                    width: 80,
-                                    height: 80,
+                                    width: 76,
+                                    height: 76,
                                     fit: BoxFit.cover,
-                                    errorWidget: (context, url, error) => Container(
-                                      width: 80,
-                                      height: 80,
-                                      color: theme.colorScheme.surfaceContainerHighest,
+                                    errorWidget: (context, url, error) =>
+                                        Container(
+                                      width: 76,
+                                      height: 76,
+                                      color: theme
+                                          .colorScheme.surfaceContainerHighest,
                                       child: const Icon(Icons.image),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 16),
+                                const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         item.costume.name,
                                         style: theme.textTheme.titleMedium
-                                            ?.copyWith(fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Rented from: ${formatter.format(item.startDate)}',
-                                        style: theme.textTheme.bodyMedium,
+                                            ?.copyWith(
+                                                fontWeight: FontWeight.bold),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                       Text(
-                                        'To: ${formatter.format(item.endDate)}',
-                                        style: theme.textTheme.bodyMedium,
+                                        item.costume.anime,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                          color:
+                                              theme.colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      if (item.size != null &&
+                                          item.size!.isNotEmpty) ...[
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary
+                                                .withValues(alpha: 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            'Size: ${item.size}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: theme.colorScheme.primary,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                      ],
+                                      Text(
+                                        '${dateFormatter.format(item.startDate)} - ${dateFormatter.format(item.endDate)}',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                          color:
+                                              theme.colorScheme.onSurfaceVariant,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 10),
+                            const Divider(height: 1),
                             const SizedBox(height: 8),
                             if (!provider.isReviewed(item))
                               Align(
                                 alignment: Alignment.centerRight,
-                                child: ElevatedButton(
+                                child: ElevatedButton.icon(
                                   onPressed: () {
                                     showDialog(
                                       context: context,
                                       builder: (_) => ReviewDialog(
                                         onDismiss: () => Navigator.pop(context),
                                         onSubmit: (text, cr, sr) async {
-                                          final rentalKey = item.endDate.toIso8601String();
-                                          await context.read<ReviewProvider>().createReview(
+                                          final rentalKey =
+                                              item.endDate.toIso8601String();
+                                          await context
+                                              .read<ReviewProvider>()
+                                              .createReview(
                                                 costumeId: item.costume.id,
                                                 storeId: item.costume.storeId,
                                                 rentalId: rentalKey,
@@ -117,13 +226,19 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
                                                 storeRating: sr,
                                               );
                                           if (context.mounted) {
-                                            context.read<RentalProvider>().markAsReviewed(rentalKey);
+                                            context
+                                                .read<RentalProvider>()
+                                                .markAsReviewed(rentalKey);
                                             if (item.id.isNotEmpty) {
-                                              context.read<RentalProvider>().markAsReviewed(item.id);
+                                              context
+                                                  .read<RentalProvider>()
+                                                  .markAsReviewed(item.id);
                                             }
-                                            ScaffoldMessenger.of(context).showSnackBar(
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
                                               const SnackBar(
-                                                content: Text('Review submitted successfully!'),
+                                                content: Text(
+                                                    'Review submitted successfully!'),
                                                 backgroundColor: Colors.green,
                                               ),
                                             );
@@ -132,20 +247,24 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
                                       ),
                                     );
                                   },
-                                  child: const Text('Write Review'),
+                                  icon: const Icon(Icons.rate_review, size: 16),
+                                  label: const Text('Write Review'),
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
+                                    textStyle: const TextStyle(fontSize: 13),
+                                  ),
                                 ),
                               )
                             else
                               Align(
                                 alignment: Alignment.centerRight,
-                                child: ElevatedButton(
+                                child: TextButton.icon(
                                   onPressed: null,
-                                  style: ElevatedButton.styleFrom(
-                                    disabledBackgroundColor: Colors.grey.shade300,
-                                    disabledForegroundColor: Colors.grey.shade600,
-                                    elevation: 0,
-                                  ),
-                                  child: const Text('Reviewed'),
+                                  icon: const Icon(Icons.check_circle,
+                                      size: 16, color: Colors.green),
+                                  label: const Text('Reviewed',
+                                      style: TextStyle(color: Colors.green)),
                                 ),
                               ),
                           ],

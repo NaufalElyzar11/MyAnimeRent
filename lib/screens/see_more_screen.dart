@@ -11,11 +11,12 @@ class SeeMoreScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CostumeProvider>();
-    final costumes = provider.getCostumesForAnime(Uri.decodeComponent(anime));
+    final decodedAnime = Uri.decodeComponent(anime);
+    final costumes = provider.getCostumesForAnime(decodedAnime);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Costumes'),
+        title: Text(decodedAnime),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -29,7 +30,7 @@ class SeeMoreScreen extends StatelessWidget {
                 maxCrossAxisExtent: 200,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 0.6,
+                childAspectRatio: 0.65,
               ),
               itemCount: costumes.length,
               itemBuilder: (context, index) {

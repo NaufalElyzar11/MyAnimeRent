@@ -30,6 +30,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isBooking = false;
   DateTime? _startDate;
   DateTime? _endDate;
+  String? _selectedSize;
 
   @override
   void initState() {
@@ -54,6 +55,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _costume = costume;
         _store = store;
         _isLoading = false;
+        if (costume != null && costume.sizes.isNotEmpty) {
+          _selectedSize = costume.sizes.first;
+        }
       });
     }
 
@@ -166,6 +170,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           startDate: _startDate!,
           endDate: _endDate!,
           totalPrice: total,
+          size: _selectedSize,
         );
 
     if (!mounted) return;
@@ -193,6 +198,231 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         SnackBar(content: Text(msg), backgroundColor: Colors.red),
       );
     }
+  }
+
+  void _showCheckoutSummary() {
+    if (_startDate == null || _endDate == null || _costume == null) return;
+
+    final days = _endDate!.difference(_startDate!).inDays + 1;
+    final totalRent = _costume!.price * days;
+    const double deposit = 50000;
+    final grandTotal = totalRent + deposit;
+    final formatter = NumberFormat('#,###', 'id_ID');
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (bottomSheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade400,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Ringkasan Sewa',
+                      style: theme.textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(bottomSheetContext),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Costume info card
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: _costume!.imageUrls.isNotEmpty
+                            ? CachedNetworkImage(
+                                imageUrl: _costume!.imageUrls.first,
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
+                                width: 64,
+                                height: 64,
+                                color: Colors.grey.shade300,
+                                child: const Icon(Icons.image),
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _costume!.name,
+                              style: theme.textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              _costume!.anime,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Ukuran: ${_selectedSize ?? "Free Size"}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Rental period info
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant
+                          .withValues(alpha: 0.5),
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_month,
+                          size: 20, color: theme.colorScheme.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${DateFormat('dd MMM').format(_startDate!)} - ${DateFormat('dd MMM yyyy').format(_endDate!)} ($days Hari)',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Cost breakdown
+                Text(
+                  'Rincian Biaya',
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                        'Sewa ($days hari x Rp ${formatter.format(_costume!.price.toInt())})'),
+                    Text('Rp ${formatter.format(totalRent.toInt())}',
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('Deposit Jaminan'),
+                        const SizedBox(width: 4),
+                        Tooltip(
+                          message:
+                              'Uang jaminan akan dikembalikan utuh setelah kostum selesai sewa tanpa kerusakan.',
+                          child: Icon(Icons.info_outline,
+                              size: 15,
+                              color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                    Text('Rp ${formatter.format(deposit.toInt())}',
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Divider(),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Pembayaran',
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Rp ${formatter.format(grandTotal.toInt())}',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(bottomSheetContext);
+                      _handleBookNow();
+                    },
+                    child: const Text('Konfirmasi & Sewa Sekarang'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -317,9 +547,42 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       Text(costume.description, style: theme.textTheme.bodyLarge),
 
                       const SizedBox(height: 16),
-                      Text('Available Sizes: ${costume.sizes.join(", ")}',
-                          style: theme.textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.w500)),
+                      Text('Pilih Ukuran',
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      if (costume.sizes.isEmpty)
+                        Text('All Size / Free Size',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant))
+                      else
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: costume.sizes.map((sz) {
+                            final isSelected = _selectedSize == sz;
+                            return ChoiceChip(
+                              label: Text(sz),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() => _selectedSize = sz);
+                                }
+                              },
+                              selectedColor: theme.colorScheme.primary,
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : theme.colorScheme.onSurface,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              showCheckmark: false,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            );
+                          }).toList(),
+                        ),
 
                       const SizedBox(height: 24),
 
@@ -467,9 +730,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 height: 56,
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: (_startDate != null && _endDate != null && !_isBooking)
-                      ? _handleBookNow
-                      : null,
+                  onPressed:
+                      (_startDate != null && _endDate != null && !_isBooking)
+                          ? _showCheckoutSummary
+                          : null,
                   child: _isBooking
                       ? const SizedBox(
                           height: 24,

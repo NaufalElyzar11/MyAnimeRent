@@ -15,6 +15,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int _currentBannerPage = 0;
+
   @override
   void initState() {
     super.initState();
@@ -84,12 +86,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Image Slider / Banner 1:1 Square (matching Kotlin aspectRatio(1f))
-          if (bannerImages.isNotEmpty)
+          // Image Slider / Banner 1:1 Square (kept 1:1 with dot indicator)
+          if (bannerImages.isNotEmpty) ...[
             AspectRatio(
               aspectRatio: 1.0,
               child: PageView.builder(
                 itemCount: bannerImages.length,
+                onPageChanged: (i) => setState(() => _currentBannerPage = i),
                 itemBuilder: (context, index) {
                   return Padding(
                     padding: const EdgeInsets.all(4),
@@ -116,6 +119,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(bannerImages.length, (i) {
+                final isSelected = _currentBannerPage == i;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: isSelected ? 18 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                );
+              }),
+            ),
+          ],
 
           const SizedBox(height: 24),
 
@@ -141,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, index) {
                 final store = provider.stores[index];
                 return GestureDetector(
-                  onTap: () => context.push('/stores'),
+                  onTap: () => context.push('/store_detail/${store.id}'),
                   child: Card(
                     margin: const EdgeInsets.only(right: 8),
                     elevation: 3,

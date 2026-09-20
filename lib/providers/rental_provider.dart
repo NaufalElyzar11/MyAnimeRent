@@ -9,12 +9,18 @@ class RentalHistoryItem {
   final Costume costume;
   final DateTime startDate;
   final DateTime endDate;
+  final double totalPrice;
+  final RentalStatus status;
+  final String? size;
 
   RentalHistoryItem({
     required this.id,
     required this.costume,
     required this.startDate,
     required this.endDate,
+    required this.totalPrice,
+    required this.status,
+    this.size,
   });
 }
 
@@ -51,29 +57,35 @@ class RentalProvider extends ChangeNotifier {
 
     try {
       final transactions = await _dbService.getRentalsForUser(user.uid);
-      final items = <RentalHistoryItem>[];
+      // Sort newest first
+      transactions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      for (final tx in transactions) {
-        final costume = await _dbService.getCostumeById(tx.costumeId);
-        if (costume != null) {
-          final item = RentalHistoryItem(
-            id: tx.id,
-            costume: costume,
-            startDate: tx.startDate,
-            endDate: tx.endDate,
-          );
-          items.add(item);
+      final results = await Future.wait(transactions.map((tx) async {
+        final costumeFuture = _dbService.getCostumeById(tx.costumeId);
+        final reviewFuture =
+            _dbService.getReviewsForRental(tx.endDate.toIso8601String());
+        final costume = await costumeFuture;
+        final existingReviews = await reviewFuture;
 
-          // Check if already reviewed (by rentalId = endDate or tx.id)
-          final existingReviews = await _dbService.getReviewsForRental(tx.endDate.toIso8601String());
-          if (existingReviews.isNotEmpty) {
-            _reviewedRentals.add(tx.endDate.toIso8601String());
-            if (tx.id.isNotEmpty) _reviewedRentals.add(tx.id);
-          }
+        if (costume == null) return null;
+
+        if (existingReviews.isNotEmpty) {
+          _reviewedRentals.add(tx.endDate.toIso8601String());
+          if (tx.id.isNotEmpty) _reviewedRentals.add(tx.id);
         }
-      }
 
-      _rentals = items;
+        return RentalHistoryItem(
+          id: tx.id,
+          costume: costume,
+          startDate: tx.startDate,
+          endDate: tx.endDate,
+          totalPrice: tx.totalPrice,
+          status: tx.status,
+          size: tx.size,
+        );
+      }));
+
+      _rentals = results.whereType<RentalHistoryItem>().toList();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -88,6 +100,7 @@ class RentalProvider extends ChangeNotifier {
     required DateTime startDate,
     required DateTime endDate,
     required double totalPrice,
+    String? size,
   }) async {
     final user = _authService.currentUser;
     if (user == null) {
@@ -105,6 +118,7 @@ class RentalProvider extends ChangeNotifier {
         endDate: endDate,
         totalPrice: totalPrice,
         status: RentalStatus.pending,
+        size: size,
       );
       await _dbService.createRental(rental);
       _message = 'Rental created successfully!';

@@ -67,4 +67,20 @@ class AuthService {
       });
     }
   }
+
+  Future<void> updateUserProfile({
+    required String name,
+    String? phoneNumber,
+    String? address,
+  }) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await _db.child('users').child(user.uid).update({
+        'name': name,
+        'phoneNumber': phoneNumber,
+        'address': address,
+      });
+      await user.updateDisplayName(name);
+    }
+  }
 }

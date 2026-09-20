@@ -38,9 +38,10 @@ class _LoginScreenState extends State<LoginScreen> {
     required IconData icon,
     required Widget child,
   }) {
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardTheme.color ?? theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(

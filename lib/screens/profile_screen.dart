@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/auth_provider.dart';
 import '../services/imgur_service.dart';
+import '../models/user.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -72,6 +73,156 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     }
+  }
+
+  void _showEditProfileDialog(BuildContext context, AppUser? user) {
+    final nameController = TextEditingController(text: user?.name ?? '');
+    final phoneController =
+        TextEditingController(text: user?.phoneNumber ?? '');
+    final addressController = TextEditingController(text: user?.address ?? '');
+    final formKey = GlobalKey<FormState>();
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (bottomSheetContext) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade400,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Edit Profile',
+                            style: theme.textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(bottomSheetContext),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Full Name',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Name cannot be empty'
+                            : null,
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'WhatsApp / Phone Number',
+                          prefixIcon: Icon(Icons.phone_outlined),
+                          hintText: 'e.g. 08123456789',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextFormField(
+                        controller: addressController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Delivery Address',
+                          prefixIcon: Icon(Icons.location_on_outlined),
+                          hintText: 'Enter complete shipping address',
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: isSaving
+                              ? null
+                              : () async {
+                                  if (!formKey.currentState!.validate()) return;
+                                  setModalState(() => isSaving = true);
+                                  final messenger =
+                                      ScaffoldMessenger.of(context);
+                                  final success = await context
+                                      .read<AuthProvider>()
+                                      .updateUserProfile(
+                                        name: nameController.text.trim(),
+                                        phoneNumber: phoneController
+                                                .text.trim().isEmpty
+                                            ? null
+                                            : phoneController.text.trim(),
+                                        address: addressController
+                                                .text.trim().isEmpty
+                                            ? null
+                                            : addressController.text.trim(),
+                                      );
+                                  if (bottomSheetContext.mounted) {
+                                    Navigator.pop(bottomSheetContext);
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(success
+                                            ? 'Profile updated successfully!'
+                                            : 'Failed to update profile'),
+                                        backgroundColor:
+                                            success ? Colors.green : Colors.red,
+                                      ),
+                                    );
+                                  }
+                                },
+                          child: isSaving
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Save Changes'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -172,9 +323,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
+
+          // Contact & Shipping Info Card
+          Builder(
+            builder: (context) {
+              final phone = user?.phoneNumber;
+              final address = user?.address;
+              final hasPhone = phone != null && phone.isNotEmpty;
+              final hasAddress = address != null && address.isNotEmpty;
+
+              if (!hasPhone && !hasAddress) return const SizedBox.shrink();
+
+              return Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant
+                        .withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    if (hasPhone)
+                      Row(
+                        children: [
+                          Icon(Icons.phone,
+                              size: 18, color: theme.colorScheme.primary),
+                          const SizedBox(width: 10),
+                          Expanded(
+                              child: Text(phone,
+                                  style: theme.textTheme.bodyMedium)),
+                        ],
+                      ),
+                    if (hasPhone && hasAddress) const SizedBox(height: 8),
+                    if (hasAddress)
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.location_on,
+                              size: 18, color: theme.colorScheme.primary),
+                          const SizedBox(width: 10),
+                          Expanded(
+                              child: Text(address,
+                                  style: theme.textTheme.bodyMedium)),
+                        ],
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
 
           // Menu Items
+          _ProfileMenuItem(
+            icon: Icons.edit_outlined,
+            label: 'Edit Profile',
+            onTap: () => _showEditProfileDialog(context, user),
+          ),
+          const Divider(),
           _ProfileMenuItem(
             icon: Icons.history,
             label: 'Rental History',

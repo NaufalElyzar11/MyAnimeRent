@@ -76,14 +76,22 @@ class _SearchScreenState extends State<SearchScreen> {
                         textAlign: TextAlign.center,
                       ),
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  : GridView.builder(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 200,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.65,
+                      ),
                       itemCount: _results.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         return CostumeCard(
                           costume: _results[index],
-                          onTap: () => context.push('/detail/${_results[index].id}'),
+                          onTap: () =>
+                              context.push('/detail/${_results[index].id}'),
                         );
                       },
                     ),
