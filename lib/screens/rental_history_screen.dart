@@ -36,15 +36,74 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : provider.rentals.isEmpty
-              ? const Center(child: Text('No rental history found.'))
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: provider.rentals.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
+      body: RefreshIndicator(
+        onRefresh: () => context.read<RentalProvider>().loadRentalHistory(),
+        child: provider.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : provider.rentals.isEmpty
+                ? LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minHeight: constraints.maxHeight),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 90,
+                                  height: 90,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary
+                                        .withValues(alpha: 0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.receipt_long_outlined,
+                                    size: 48,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                  'Belum Ada Riwayat Sewa',
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Kostum yang kamu sewa untuk event atau cosplay akan tercatat rapi di sini.',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                ElevatedButton.icon(
+                                  onPressed: () => context.go('/home'),
+                                  icon: const Icon(Icons.shopping_bag_outlined,
+                                      size: 18),
+                                  label: const Text('Mulai Sewa Kostum'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: provider.rentals.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
                     final item = provider.rentals[index];
                     final dateFormatter = DateFormat('dd MMM yyyy');
                     final priceFormatter = NumberFormat('#,###', 'id_ID');
@@ -273,6 +332,7 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
                     );
                   },
                 ),
+      ),
     );
   }
 }

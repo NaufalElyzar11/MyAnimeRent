@@ -55,11 +55,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final allImages = provider.costumes.expand((c) => c.imageUrls).toList();
     final bannerImages = allImages.take(4).toList();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return RefreshIndicator(
+      onRefresh: () => context.read<CostumeProvider>().loadData(force: true),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Top Brand Header with Logo
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
@@ -222,8 +225,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _CostumeSection extends StatelessWidget {

@@ -15,6 +15,10 @@ class WishlistProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
+  bool isItemInWishlist(String costumeId) {
+    return _wishlistItems.any((item) => item.id == costumeId);
+  }
+
   Future<void> loadWishlist() async {
     final user = _authService.currentUser;
     if (user == null) return;
@@ -24,12 +28,10 @@ class WishlistProvider extends ChangeNotifier {
 
     try {
       final costumeIds = await _dbService.getWishlist(user.uid);
-      final items = <Costume>[];
-      for (final id in costumeIds) {
-        final costume = await _dbService.getCostumeById(id);
-        if (costume != null) items.add(costume);
-      }
-      _wishlistItems = items;
+      final results = await Future.wait(
+        costumeIds.map((id) => _dbService.getCostumeById(id)),
+      );
+      _wishlistItems = results.whereType<Costume>().toList();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
