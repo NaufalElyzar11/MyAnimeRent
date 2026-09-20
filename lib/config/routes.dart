@@ -13,6 +13,9 @@ import '../screens/settings_screen.dart';
 import '../screens/store_screen.dart';
 import '../screens/store_detail_screen.dart';
 import '../screens/see_more_screen.dart';
+import '../screens/admin/admin_dashboard_screen.dart';
+import '../screens/admin/costume_form_screen.dart';
+import '../screens/admin/store_form_screen.dart';
 import '../widgets/app_shell.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -108,6 +111,37 @@ GoRouter createRouter(AuthProvider authProvider) {
         builder: (context, state) {
           final anime = state.pathParameters['anime']!;
           return SeeMoreScreen(anime: anime);
+        },
+      ),
+      GoRoute(
+        path: '/admin',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/admin/costume/add',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const CostumeFormScreen(),
+      ),
+      GoRoute(
+        path: '/admin/costume/edit/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.pathParameters['id'];
+          return CostumeFormScreen(costumeId: id);
+        },
+      ),
+      GoRoute(
+        path: '/admin/store/add',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const StoreFormScreen(),
+      ),
+      GoRoute(
+        path: '/admin/store/edit/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.pathParameters['id'];
+          return StoreFormScreen(storeId: id);
         },
       ),
     ],

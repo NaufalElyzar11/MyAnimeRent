@@ -48,6 +48,20 @@ class DatabaseService {
     }).toList();
   }
 
+  Future<String> createCostume(Costume costume) async {
+    final ref = _db.child('costumes').push();
+    await ref.set(costume.toMap());
+    return ref.key ?? '';
+  }
+
+  Future<void> updateCostume(String id, Map<String, dynamic> data) async {
+    await _db.child('costumes').child(id).update(data);
+  }
+
+  Future<void> deleteCostume(String id) async {
+    await _db.child('costumes').child(id).remove();
+  }
+
   // ─── Stores ────────────────────────────────────────────────
   Future<List<Store>> getStores() async {
     try {
@@ -73,6 +87,20 @@ class DatabaseService {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<String> createStore(Store store) async {
+    final ref = _db.child('stores').push();
+    await ref.set(store.toMap());
+    return ref.key ?? '';
+  }
+
+  Future<void> updateStore(String id, Map<String, dynamic> data) async {
+    await _db.child('stores').child(id).update(data);
+  }
+
+  Future<void> deleteStore(String id) async {
+    await _db.child('stores').child(id).remove();
   }
 
   // ─── Rentals ───────────────────────────────────────────────
@@ -145,6 +173,27 @@ class DatabaseService {
       final sortedDates = currentBooked.toList()..sort();
       await bookedDatesRef.set(sortedDates);
     } catch (_) {}
+  }
+
+  Future<List<RentalTransaction>> getAllRentals() async {
+    try {
+      final snapshot = await _db.child('rentals').get().timeout(const Duration(seconds: 6));
+      if (!snapshot.exists || snapshot.value == null) return [];
+      final map = Map<String, dynamic>.from(snapshot.value as Map);
+      final list = map.entries.map((e) {
+        return RentalTransaction.fromMap(Map<String, dynamic>.from(e.value), e.key);
+      }).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> updateRentalStatus(String rentalId, RentalStatus status) async {
+    await _db.child('rentals').child(rentalId).update({
+      'status': status.name,
+    });
   }
 
   // ─── Wishlist ──────────────────────────────────────────────

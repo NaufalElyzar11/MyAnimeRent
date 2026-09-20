@@ -47,6 +47,7 @@ class AuthService {
     await _db.child('users').child(credential.user!.uid).set({
       'email': email,
       'name': name,
+      'role': 'user',
       'profileImageUrl': null,
       'phoneNumber': null,
       'address': null,
