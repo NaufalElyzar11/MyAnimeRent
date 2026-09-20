@@ -79,7 +79,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       itemCount: _results.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         return CostumeCard(
                           costume: _results[index],

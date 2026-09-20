@@ -27,11 +27,11 @@ class CostumeCard extends StatelessWidget {
                   ? CachedNetworkImage(
                       imageUrl: costume.imageUrls.first,
                       fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(
+                      placeholder: (_, _) => Container(
                         color: theme.colorScheme.surfaceContainerHighest,
                         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                       ),
-                      errorWidget: (_, __, ___) => Container(
+                      errorWidget: (_, _, _) => Container(
                         color: theme.colorScheme.surfaceContainerHighest,
                         child: const Icon(Icons.image_not_supported, size: 40),
                       ),

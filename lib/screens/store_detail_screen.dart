@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../config/theme.dart';
 import '../providers/costume_provider.dart';
 import '../widgets/costume_card.dart';
 
@@ -47,7 +48,7 @@ class StoreDetailScreen extends StatelessWidget {
                     width: 120,
                     height: 120,
                     fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) =>
+                    errorWidget: (_, _, _) =>
                         const Icon(Icons.store, size: 60),
                   ),
                 ),
@@ -61,7 +62,7 @@ class StoreDetailScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.star, color: Color(0xFFFFC107), size: 18),
+                    const Icon(Icons.star, color: AppColors.yellow, size: 18),
                     const SizedBox(width: 4),
                     Text(store.rating.toStringAsFixed(1),
                         style: theme.textTheme.bodyMedium

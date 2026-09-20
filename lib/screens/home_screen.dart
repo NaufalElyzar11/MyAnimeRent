@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../config/theme.dart';
 import '../providers/costume_provider.dart';
 import '../models/costume.dart';
 import '../widgets/costume_card.dart';
@@ -57,6 +58,32 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Top Brand Header with Logo
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Image.asset(
+                  'assets/images/logo.png',
+                  height: 44,
+                  fit: BoxFit.contain,
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.pink.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.search, color: AppColors.purple),
+                    onPressed: () => context.go('/search'),
+                    tooltip: 'Search Costumes',
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Image Slider / Banner 1:1 Square (matching Kotlin aspectRatio(1f))
           if (bannerImages.isNotEmpty)
             AspectRatio(

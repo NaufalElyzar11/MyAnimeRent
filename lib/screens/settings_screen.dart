@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../config/theme.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -58,6 +59,61 @@ class SettingsScreen extends StatelessWidget {
               label: 'Language',
               currentValue: 'English',
               onTap: () {},
+            ),
+
+            const SizedBox(height: 32),
+            // Brand / About Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: theme.cardTheme.color ?? Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.purple.withValues(alpha: 0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 80,
+                    fit: BoxFit.contain,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Kostum Hari Ini, Cerita Seru Esok Nanti ✨',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.purple,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Platform rental kostum anime di Indonesia yang lebih terorganisir, praktis, dan terpercaya.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Version 1.0.0',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../config/theme.dart';
 import '../models/store.dart';
 
 class StoreCard extends StatelessWidget {
@@ -25,11 +26,11 @@ class StoreCard extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: store.imageUrl,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
+                placeholder: (_, _) => Container(
                   color: theme.colorScheme.surfaceContainerHighest,
                   child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
-                errorWidget: (_, __, ___) => Container(
+                errorWidget: (_, _, _) => Container(
                   color: theme.colorScheme.surfaceContainerHighest,
                   child: const Icon(Icons.store, size: 40),
                 ),
@@ -57,7 +58,7 @@ class StoreCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.star, color: Color(0xFFFFC107), size: 16),
+                      const Icon(Icons.star, color: AppColors.yellow, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         store.rating.toStringAsFixed(1),
