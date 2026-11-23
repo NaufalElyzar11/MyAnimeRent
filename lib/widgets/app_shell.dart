@@ -3,7 +3,10 @@ import 'package:go_router/go_router.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
-  const AppShell({super.key, required this.child});
+  const AppShell({super.key, required this.child, this.navigationShell});
+
+  /// Optional public/local navigation; the main app retains its original routes.
+  final StatefulNavigationShell? navigationShell;
 
   static int _getSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
@@ -21,8 +24,14 @@ class AppShell extends StatelessWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(child: child),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _getSelectedIndex(context),
+        selectedIndex:
+            navigationShell?.currentIndex ?? _getSelectedIndex(context),
         onDestinationSelected: (index) {
+          if (navigationShell != null) {
+            FocusScope.of(context).unfocus();
+            navigationShell!.goBranch(index);
+            return;
+          }
           switch (index) {
             case 0:
               context.go('/home');
@@ -38,26 +47,26 @@ class AppShell extends StatelessWidget {
               break;
           }
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
-            label: 'Home',
+            label: navigationShell == null ? 'Home' : 'Beranda',
           ),
           NavigationDestination(
             icon: Icon(Icons.search_outlined),
             selectedIcon: Icon(Icons.search),
-            label: 'Search',
+            label: navigationShell == null ? 'Search' : 'Cari',
           ),
           NavigationDestination(
             icon: Icon(Icons.favorite_outline),
             selectedIcon: Icon(Icons.favorite),
-            label: 'Wishlist',
+            label: navigationShell == null ? 'Wishlist' : 'Favorit',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+            label: navigationShell == null ? 'Profile' : 'Profil',
           ),
         ],
       ),

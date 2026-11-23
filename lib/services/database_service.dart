@@ -5,12 +5,20 @@ import '../models/costume.dart';
 import '../models/store.dart';
 import '../models/rental_transaction.dart';
 import '../models/review.dart';
+import '../config/event_safety.dart';
 
 class DatabaseService {
-  final DatabaseReference _db = FirebaseDatabase.instanceFor(
-    app: Firebase.app(),
-    databaseURL: DefaultFirebaseOptions.databaseUrl,
-  ).ref();
+  DatabaseService() {
+    EventSafety.requireCloudAccess();
+  }
+
+  DatabaseReference get _db {
+    EventSafety.requireCloudAccess();
+    return FirebaseDatabase.instanceFor(
+      app: Firebase.app(),
+      databaseURL: DefaultFirebaseOptions.databaseUrl,
+    ).ref();
+  }
 
   // ─── Costumes ──────────────────────────────────────────────
   Future<List<Costume>> getCostumes() async {

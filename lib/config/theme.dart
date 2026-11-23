@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   // Brand Identity Palette
@@ -50,7 +49,8 @@ class AppThemeData {
       ),
       scaffoldBackgroundColor: AppColors.lightBg,
       canvasColor: AppColors.lightBg,
-      textTheme: GoogleFonts.poppinsTextTheme().apply(
+      textTheme: ThemeData.light().textTheme.apply(
+        fontFamily: 'Poppins',
         bodyColor: AppColors.darkGrey,
         displayColor: AppColors.darkGrey,
       ),
@@ -58,7 +58,8 @@ class AppThemeData {
         backgroundColor: AppColors.lightBg,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: const TextStyle(
+          fontFamily: 'Poppins',
           color: AppColors.darkGrey,
           fontSize: 20,
           fontWeight: FontWeight.w600,
@@ -77,9 +78,15 @@ class AppThemeData {
           foregroundColor: Colors.white,
           elevation: 2,
           shadowColor: AppColors.pink.withValues(alpha: 0.35),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -93,7 +100,10 @@ class AppThemeData {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.purple, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         indicatorColor: AppColors.pink.withValues(alpha: 0.18),
@@ -104,7 +114,11 @@ class AppThemeData {
           return const IconThemeData(color: Colors.grey);
         }),
         labelTextStyle: WidgetStatePropertyAll(
-          GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500),
+          const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -124,12 +138,13 @@ class AppThemeData {
       ),
       scaffoldBackgroundColor: AppColors.darkBg,
       canvasColor: AppColors.darkBg,
-      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+      textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Poppins'),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.darkBg,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: const TextStyle(
+          fontFamily: 'Poppins',
           color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.w600,
@@ -148,9 +163,15 @@ class AppThemeData {
           foregroundColor: Colors.white,
           elevation: 2,
           shadowColor: AppColors.pink.withValues(alpha: 0.35),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -164,7 +185,10 @@ class AppThemeData {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.purple, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         indicatorColor: AppColors.pink.withValues(alpha: 0.25),
@@ -175,7 +199,11 @@ class AppThemeData {
           return const IconThemeData(color: Colors.grey);
         }),
         labelTextStyle: WidgetStatePropertyAll(
-          GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500),
+          const TextStyle(
+            fontFamily: 'Poppins',
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );

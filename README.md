@@ -1,5 +1,16 @@
 # MyAnimeRent 🌸👗
 
+## Versi uji event offline
+
+Aplikasi utama tetap memakai flavor default `standard` dan target `lib/main.dart`, beserta fitur yang sudah ada. Mode event memakai komponen UI yang sama, empat tab, katalog lokal dan favorit sementara. Paket uji memiliki ID Android `.event` sehingga dapat dipasang berdampingan dengan aplikasi utama:
+
+```powershell
+flutter run --flavor event -t lib/main_event.dart
+flutter build apk --debug --flavor event -t lib/main_event.dart
+```
+
+Data bawaan bersifat ilustratif, harga simulasi dan kontak nonaktif. [Panduan event, format snapshot, validasi dan lembar uji](../dokumen-saas/11-panduan-menjalankan-demo-event.md). Target default `lib/main.dart` tetap aplikasi lama; gunakan target event secara eksplisit.
+
 > *"Kostum Hari Ini, Cerita Seru Esok Nanti ✨"*  
 > **Platform rental kostum anime di Indonesia yang lebih terorganisir, praktis, dan terpercaya.**
 

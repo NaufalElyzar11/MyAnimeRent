@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "revision": "illustration-20261112-v1",
+  "kind": "illustrative",
+  "capturedAt": "2026-11-12T00:00:00Z",
+  "cities": [
+    {"code": "id-6371", "name": "Banjarmasin"},
+    {"code": "id-6372", "name": "Banjarbaru"},
+    {"code": "id-6303", "name": "Kabupaten Banjar"}
+  ],
+  "stores": [
+    {"id": "demo-store-a", "name": "Toko Ilustrasi A", "cityCode": "id-6371", "description": "Identitas toko rekaan untuk mencoba antarmuka. Bukan toko rental nyata.", "policies": "Contoh kebijakan: pengambilan dan pengembalian dibicarakan dengan toko. Ini hanya simulasi.", "verifiedAt": null, "whatsapp": null, "contactConsent": false, "publicationConsent": false, "consentReference": null},
+    {"id": "demo-store-b", "name": "Toko Ilustrasi B", "cityCode": "id-6372", "description": "Identitas toko rekaan untuk mencoba antarmuka. Semua harga adalah angka simulasi.", "policies": null, "verifiedAt": null, "whatsapp": null, "contactConsent": false, "publicationConsent": false, "consentReference": null},
+    {"id": "demo-store-c", "name": "Toko Ilustrasi C", "cityCode": "id-6303", "description": "Identitas toko rekaan untuk mencoba antarmuka. Kontak dinonaktifkan.", "policies": "Contoh kebijakan: tanyakan kelengkapan dan aturan perawatan sebelum menyewa. Ini hanya simulasi.", "verifiedAt": null, "whatsapp": null, "contactConsent": false, "publicationConsent": false, "consentReference": null}
+  ],
+  "products": [
+    {
+      "id": "demo-2b-a", "storeId": "demo-store-a", "name": "2B • Pakaian hitam", "character": "2B", "series": "NieR:Automata",
+      "aliases": ["YoRHa No.2 Type B", "Nier Automata", "ニーア オートマタ", "ニーアオートマタ"],
+      "imageAssets": ["assets/event/images/2b-black.png", "assets/event/images/2b-detail.png"], "sizes": ["S", "M"], "price": {"amountIdr": 120000, "durationDays": 3},
+      "description": "Ilustrasi kostum 2B. Gambar, ukuran dan harga ini hanya simulasi antarmuka, bukan penawaran rental.", "sizeNotes": "Contoh ukuran M: lingkar dada 88–94 cm. Angka simulasi, bukan hasil pengukuran barang.", "packageContents": ["Contoh: pakaian", "Contoh: sarung tangan"], "policies": null, "depositIdr": 50000, "verifiedAt": null, "publicationConsent": false, "consentReference": null
+    },
+    {
+      "id": "demo-2b-b", "storeId": "demo-store-b", "name": "2B • Varian putih", "character": "2B", "series": "NieR:Automata",
+      "aliases": ["YoRHa No.2 Type B", "Nier Automata", "ニーア オートマタ", "ニーアオートマタ"],
+      "imageAssets": ["assets/event/images/2b-white.png"], "sizes": ["M", "L"], "price": {"amountIdr": 85000, "durationDays": 1},
+      "description": "Ilustrasi varian putih. Harga simulasi untuk paket 1 hari, tidak dikonversi dari paket lain.", "sizeNotes": null, "packageContents": [], "policies": null, "depositIdr": null, "verifiedAt": null, "publicationConsent": false, "consentReference": null
+    },
+    {
+      "id": "demo-tanjiro-a", "storeId": "demo-store-a", "name": "Tanjiro • Haori kotak", "character": "Tanjiro Kamado", "series": "Kimetsu no Yaiba",
+      "aliases": ["Demon Slayer", "鬼滅の刃", "Kamado Tanjiro", "Tanjiro"],
+      "imageAssets": ["assets/event/images/tanjiro.png"], "sizes": ["M", "L"], "price": {"amountIdr": 100000, "durationDays": 3},
+      "description": "Ilustrasi haori. Harga dan kelengkapan adalah contoh untuk uji interaksi.", "sizeNotes": null, "packageContents": ["Contoh: haori", "Contoh: seragam"], "policies": null, "depositIdr": null, "verifiedAt": null, "publicationConsent": false, "consentReference": null
+    },
+    {
+      "id": "demo-tanjiro-c", "storeId": "demo-store-c", "name": "Tanjiro • Seragam", "character": "Tanjiro Kamado", "series": "Kimetsu no Yaiba",
+      "aliases": ["Demon Slayer", "鬼滅の刃", "Kamado Tanjiro", "Tanjiro"],
+      "imageAssets": ["assets/event/images/tanjiro.png"], "sizes": ["M"], "price": {"amountIdr": 65000, "durationDays": null},
+      "description": "Contoh data dengan durasi belum diinformasikan. Dikecualikan saat filter rentang harga aktif.", "sizeNotes": null, "packageContents": [], "policies": null, "depositIdr": null, "verifiedAt": null, "publicationConsent": false, "consentReference": null
+    },
+    {
+      "id": "demo-anya-b", "storeId": "demo-store-b", "name": "Anya • Seragam sekolah", "character": "Anya Forger", "series": "SPY×FAMILY",
+      "aliases": ["Spy x Family", "スパイファミリー", "Anya"],
+      "imageAssets": ["assets/event/images/anya.png"], "sizes": ["S"], "price": {"amountIdr": 90000, "durationDays": 3},
+      "description": "Ilustrasi seragam. Bukan foto barang atau penawaran toko nyata.", "sizeNotes": null, "packageContents": ["Contoh: pakaian", "Contoh: aksesori rambut"], "policies": null, "depositIdr": null, "verifiedAt": null, "publicationConsent": false, "consentReference": null
+    },
+    {
+      "id": "demo-hutao-c", "storeId": "demo-store-c", "name": "Hu Tao • Pakaian karakter", "character": "Hu Tao", "series": "Genshin Impact",
+      "aliases": ["Hutao", "原神", "胡桃"],
+      "imageAssets": ["assets/event/images/hutao.png"], "sizes": ["M", "L"], "price": {"amountIdr": 140000, "durationDays": 4},
+      "description": "Ilustrasi pakaian karakter dengan contoh paket 4 hari.", "sizeNotes": null, "packageContents": ["Contoh: pakaian", "Contoh: topi"], "policies": null, "depositIdr": 75000, "verifiedAt": null, "publicationConsent": false, "consentReference": null
+    },
+    {
+      "id": "demo-frieren-a", "storeId": "demo-store-a", "name": "Frieren • Jubah penyihir", "character": "Frieren", "series": "Sousou no Frieren",
+      "aliases": ["Frieren Beyond Journey's End", "葬送のフリーレン"],
+      "imageAssets": ["assets/event/images/frieren.png"], "sizes": [], "price": {"amountIdr": null, "durationDays": null},
+      "description": "Contoh data yang belum memiliki harga dan ukuran. Kolom tersebut tidak diisi angka tebakan.", "sizeNotes": null, "packageContents": [], "policies": null, "depositIdr": null, "verifiedAt": null, "publicationConsent": false, "consentReference": null
+    },
+    {
+      "id": "demo-naruto-b", "storeId": "demo-store-b", "name": "Naruto • Jaket oranye", "character": "Naruto Uzumaki", "series": "Naruto Shippuden",
+      "aliases": ["ナルト", "Uzumaki Naruto"],
+      "imageAssets": ["assets/event/images/naruto.png"], "sizes": ["L", "XL"], "price": {"amountIdr": 110000, "durationDays": 2},
+      "description": "Ilustrasi jaket. Semua angka hanya untuk simulasi filter.", "sizeNotes": null, "packageContents": ["Contoh: jaket", "Contoh: celana"], "policies": null, "depositIdr": null, "verifiedAt": null, "publicationConsent": false, "consentReference": null
+    },
+    {
+      "id": "demo-yor-c", "storeId": "demo-store-c", "name": "Yor • Gaun karakter", "character": "Yor Forger", "series": "SPY×FAMILY",
+      "aliases": ["Spy x Family", "スパイファミリー", "Yor"],
+      "imageAssets": ["assets/event/images/yor.png"], "sizes": ["S", "M"], "price": {"amountIdr": 125000, "durationDays": 3},
+      "description": "Ilustrasi gaun untuk mencoba pencarian lintas toko.", "sizeNotes": null, "packageContents": ["Contoh: gaun", "Contoh: aksesori"], "policies": null, "depositIdr": null, "verifiedAt": null, "publicationConsent": false, "consentReference": null
+    }
+  ]
+}

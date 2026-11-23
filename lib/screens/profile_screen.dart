@@ -1,15 +1,18 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../providers/auth_provider.dart';
 import '../services/imgur_service.dart';
 import '../models/user.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.guestBody});
+  final Widget? guestBody;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -38,15 +41,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
-        final success =
-            await context.read<AuthProvider>().updateProfileImage(imageUrl);
+        final success = await context.read<AuthProvider>().updateProfileImage(
+          imageUrl,
+        );
         if (mounted) {
           setState(() => _isUploadingImage = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(success
-                  ? 'Profile photo updated successfully!'
-                  : 'Failed to save profile photo'),
+              content: Text(
+                success
+                    ? 'Profile photo updated successfully!'
+                    : 'Failed to save profile photo',
+              ),
               backgroundColor: success ? Colors.green : Colors.red,
             ),
           );
@@ -56,7 +62,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() => _isUploadingImage = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Failed to upload image. Please check your internet connection.'),
+              content: Text(
+                'Failed to upload image. Please check your internet connection.',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -66,10 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() => _isUploadingImage = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -77,8 +82,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showEditProfileDialog(BuildContext context, AppUser? user) {
     final nameController = TextEditingController(text: user?.name ?? '');
-    final phoneController =
-        TextEditingController(text: user?.phoneNumber ?? '');
+    final phoneController = TextEditingController(
+      text: user?.phoneNumber ?? '',
+    );
     final addressController = TextEditingController(text: user?.address ?? '');
     final formKey = GlobalKey<FormState>();
     final theme = Theme.of(context);
@@ -124,8 +130,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Text(
                             'Edit Profile',
-                            style: theme.textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.close),
@@ -174,18 +181,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               : () async {
                                   if (!formKey.currentState!.validate()) return;
                                   setModalState(() => isSaving = true);
-                                  final messenger =
-                                      ScaffoldMessenger.of(context);
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
                                   final success = await context
                                       .read<AuthProvider>()
                                       .updateUserProfile(
                                         name: nameController.text.trim(),
-                                        phoneNumber: phoneController
-                                                .text.trim().isEmpty
+                                        phoneNumber:
+                                            phoneController.text.trim().isEmpty
                                             ? null
                                             : phoneController.text.trim(),
-                                        address: addressController
-                                                .text.trim().isEmpty
+                                        address:
+                                            addressController.text
+                                                .trim()
+                                                .isEmpty
                                             ? null
                                             : addressController.text.trim(),
                                       );
@@ -193,11 +203,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     Navigator.pop(bottomSheetContext);
                                     messenger.showSnackBar(
                                       SnackBar(
-                                        content: Text(success
-                                            ? 'Profile updated successfully!'
-                                            : 'Failed to update profile'),
-                                        backgroundColor:
-                                            success ? Colors.green : Colors.red,
+                                        content: Text(
+                                          success
+                                              ? 'Profile updated successfully!'
+                                              : 'Failed to update profile',
+                                        ),
+                                        backgroundColor: success
+                                            ? Colors.green
+                                            : Colors.red,
                                       ),
                                     );
                                   }
@@ -227,6 +240,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.guestBody != null) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Profil'),
+          automaticallyImplyLeading: false,
+        ),
+        body: widget.guestBody,
+      );
+    }
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     final theme = Theme.of(context);
@@ -249,11 +272,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 CircleAvatar(
                   radius: 60,
                   backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  backgroundImage: user?.profileImageUrl != null &&
+                  backgroundImage:
+                      user?.profileImageUrl != null &&
                           user!.profileImageUrl!.isNotEmpty
                       ? CachedNetworkImageProvider(user.profileImageUrl!)
                       : null,
-                  child: user?.profileImageUrl == null ||
+                  child:
+                      user?.profileImageUrl == null ||
                           user!.profileImageUrl!.isEmpty
                       ? const Icon(Icons.person, size: 60, color: Colors.grey)
                       : null,
@@ -318,15 +343,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Flexible(
                 child: Text(
                   user?.name.isNotEmpty == true ? user!.name : 'Guest User',
-                  style: theme.textTheme.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               if (user?.isAdmin == true) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary,
                     borderRadius: BorderRadius.circular(8),
@@ -440,12 +469,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.35),
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.35,
+                  ),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: theme.colorScheme.outlineVariant
-                        .withValues(alpha: 0.4),
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.4,
+                    ),
                   ),
                 ),
                 child: Column(
@@ -453,12 +484,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     if (hasPhone)
                       Row(
                         children: [
-                          Icon(Icons.phone,
-                              size: 18, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.phone,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
-                              child: Text(phone,
-                                  style: theme.textTheme.bodyMedium)),
+                            child: Text(
+                              phone,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
                         ],
                       ),
                     if (hasPhone && hasAddress) const SizedBox(height: 8),
@@ -466,12 +503,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.location_on,
-                              size: 18, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.location_on,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
-                              child: Text(address,
-                                  style: theme.textTheme.bodyMedium)),
+                            child: Text(
+                              address,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
                         ],
                       ),
                   ],
@@ -535,8 +578,10 @@ class _ProfileMenuItem extends StatelessWidget {
       leading: Icon(icon, color: theme.colorScheme.primary),
       title: Text(label),
       trailing: showArrow
-          ? Icon(Icons.keyboard_arrow_right,
-              color: theme.colorScheme.onSurfaceVariant)
+          ? Icon(
+              Icons.keyboard_arrow_right,
+              color: theme.colorScheme.onSurfaceVariant,
+            )
           : null,
       onTap: onTap,
       contentPadding: EdgeInsets.zero,

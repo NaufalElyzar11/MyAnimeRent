@@ -3,13 +3,25 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../firebase_options.dart';
 import '../models/user.dart';
+import '../config/event_safety.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final DatabaseReference _db = FirebaseDatabase.instanceFor(
-    app: Firebase.app(),
-    databaseURL: DefaultFirebaseOptions.databaseUrl,
-  ).ref();
+  AuthService() {
+    EventSafety.requireCloudAccess();
+  }
+
+  FirebaseAuth get _auth {
+    EventSafety.requireCloudAccess();
+    return FirebaseAuth.instance;
+  }
+
+  DatabaseReference get _db {
+    EventSafety.requireCloudAccess();
+    return FirebaseDatabase.instanceFor(
+      app: Firebase.app(),
+      databaseURL: DefaultFirebaseOptions.databaseUrl,
+    ).ref();
+  }
 
   User? get currentUser => _auth.currentUser;
 
