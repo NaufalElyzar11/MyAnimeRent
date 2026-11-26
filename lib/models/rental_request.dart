@@ -13,6 +13,16 @@ extension RequestStatusX on RequestStatus {
         RequestStatus.expired => 'Kedaluwarsa',
       };
 
+  /// Label untuk layar toko.
+  String get storeLabel => switch (this) {
+        RequestStatus.submitted => 'Baru',
+        RequestStatus.responded => 'Sudah dibalas',
+        RequestStatus.accepted => 'Dikonfirmasi',
+        RequestStatus.declined => 'Ditolak',
+        RequestStatus.cancelled => 'Dibatalkan',
+        RequestStatus.expired => 'Kedaluwarsa',
+      };
+
   /// Masih bisa dibatalkan penyewa / dibalas lewat pesan.
   bool get isOpen => this == RequestStatus.submitted || this == RequestStatus.responded;
   bool get canMessage => isOpen || this == RequestStatus.accepted;

@@ -55,6 +55,12 @@ Logo dan palet warna MyAnimeRent dirancang untuk merefleksikan semangat kreativi
 - 📨 **Ajukan sewa dari app**: pilih ukuran dan tanggal, kirim permintaan, lalu ikuti statusnya (menunggu, dibalas, dikonfirmasi, ditolak, dibatalkan, kedaluwarsa). Ada pesan dua arah dengan toko; WA toko baru muncul setelah dikonfirmasi bila toko mengizinkan.
 - 🔔 **Notifikasi**: kotak masuk dalam app (realtime) dan push FCM saat app tertutup.
 - 🏪 **Direktori toko**: daftar toko terbit beserta katalognya.
+- 🧾 **Tab Toko (owner/staf)**: muncul otomatis untuk akun yang terhubung ke toko.
+  - Kotak permintaan: balas pesan, **konfirmasi** ke set tertentu (tanggal langsung terkunci) atau tolak dengan alasan.
+  - Kalender per set: lihat jadwal sebulan, catat sewa dari WA/IG/datang langsung, blok laundry/perbaikan, batalkan sewa.
+  - Katalog: buat/edit kostum (info, isi paket, ukuran, harga, deposit, hari laundry), maks. 3 foto dari galeri/kamera (diperkecil di HP, metadata lokasi dibuang server), terbitkan, tarik, arsipkan.
+  - Profil toko (owner): nama, kota, aturan sewa, WhatsApp & apakah tampil publik, pengiriman, terbitkan/tarik toko.
+  - Izin mengikuti peran: owner semua; staf sesuai izin `orders`/`calendar`.
 - ❤️ **Favorit** tersimpan di akun.
 - 🌓 **Tema terang/gelap** dengan Material 3.
 
@@ -67,7 +73,7 @@ Logo dan palet warna MyAnimeRent dirancang untuk merefleksikan semangat kreativi
 - **Routing**: [go_router](https://pub.dev/packages/go_router)
 - **Backend**: [supabase_flutter](https://pub.dev/packages/supabase_flutter) (Auth, database dengan RLS, Edge Functions, Storage, Realtime)
 - **Push**: [firebase_core](https://pub.dev/packages/firebase_core) + [firebase_messaging](https://pub.dev/packages/firebase_messaging) (hanya FCM; data tidak lagi di Firebase)
-- **Gambar**: [cached_network_image](https://pub.dev/packages/cached_network_image)
+- **Gambar**: [cached_network_image](https://pub.dev/packages/cached_network_image), [image_picker](https://pub.dev/packages/image_picker) (foto katalog toko)
 - **Local Storage**: [shared_preferences](https://pub.dev/packages/shared_preferences)
 - **Typography & UI**:
   - [google_fonts](https://pub.dev/packages/google_fonts) (Poppins)
@@ -96,6 +102,7 @@ lib/
 │   ├── database_service.dart # Katalog, cek tanggal, permintaan, pesan, notifikasi, favorit
 │   └── push_service.dart     # Token FCM ↔ register_push_token
 ├── screens/                # Beranda, Cari, Detail, Permintaan Sewa, Detail Permintaan, Notifikasi, Profil, …
+│   └── store/              # Tab Toko: kotak permintaan, detail untuk toko, kalender, jadwal per set
 ├── event/                  # Katalog & layar mode event
 └── widgets/
 ```
@@ -135,7 +142,7 @@ flutter run --flavor standard --dart-define-from-file=env/hp-usb.json
 ```
 Tanpa `--dart-define-from-file`, app menampilkan layar "konfigurasi belum diisi".
 
-Akun demo lokal (kata sandi `demo12345`): `penyewa@demo.local` untuk mencoba booking; `owner-a@demo.local` menerima permintaannya (sementara dijawab lewat Studio/skrip, dashboard toko ada di website nanti).
+Akun demo lokal (kata sandi `demo12345`): `penyewa@demo.local` untuk mencoba booking; `owner-a@demo.local` (atau staf `admin-a@demo.local`) membuka tab **Toko** untuk menjawab dan mengonfirmasi. Toko B/C (`owner-b`, `owner-c`) memakai paket Direktori tanpa kalender, jadi hanya bisa membalas dan menolak.
 
 ### 4. Pemeriksaan
 ```powershell

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/store_admin_provider.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
@@ -14,18 +17,24 @@ class AppShell extends StatelessWidget {
     if (location.startsWith('/search')) return 1;
     if (location.startsWith('/wishlist')) return 2;
     if (location.startsWith('/profile')) return 3;
+    if (location == '/store') return 4;
     return 0;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // Tab "Toko" hanya di aplikasi utama dan hanya untuk owner/staf toko (bukan mode event).
+    final store = navigationShell == null ? context.watch<StoreAdminProvider>() : null;
+    final showStore = store?.hasStores ?? false;
+    final openRequests = store?.openCount ?? 0;
+    var selected = navigationShell?.currentIndex ?? _getSelectedIndex(context);
+    if (selected > (showStore ? 4 : 3)) selected = 0;
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(child: child),
       bottomNavigationBar: NavigationBar(
-        selectedIndex:
-            navigationShell?.currentIndex ?? _getSelectedIndex(context),
+        selectedIndex: selected,
         onDestinationSelected: (index) {
           if (navigationShell != null) {
             FocusScope.of(context).unfocus();
@@ -44,6 +53,9 @@ class AppShell extends StatelessWidget {
               break;
             case 3:
               context.go('/profile');
+              break;
+            case 4:
+              context.go('/store');
               break;
           }
         },
@@ -68,6 +80,20 @@ class AppShell extends StatelessWidget {
             selectedIcon: Icon(Icons.person),
             label: 'Profil',
           ),
+          if (showStore)
+            NavigationDestination(
+              icon: Badge(
+                isLabelVisible: openRequests > 0,
+                label: Text('$openRequests'),
+                child: const Icon(Icons.storefront_outlined),
+              ),
+              selectedIcon: Badge(
+                isLabelVisible: openRequests > 0,
+                label: Text('$openRequests'),
+                child: const Icon(Icons.storefront),
+              ),
+              label: 'Toko',
+            ),
         ],
       ),
     );

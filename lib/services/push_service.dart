@@ -55,12 +55,13 @@ abstract final class PushService {
     }
   }
 
-  /// Membuka layar permintaan saat notifikasi diketuk (app di latar belakang atau tertutup).
-  static Future<void> listenTaps(void Function(String requestId) openRequest) async {
+  /// Membuka layar yang tepat saat notifikasi diketuk (app di latar belakang atau tertutup).
+  /// [open] menerima isi `data` push (request_id, audience, kind, …).
+  static Future<void> listenTaps(void Function(Map<String, dynamic> data) open) async {
     if (!_supported) return;
     void handle(RemoteMessage m) {
       final id = m.data['request_id']?.toString();
-      if (id != null && id.isNotEmpty) openRequest(id);
+      if (id != null && id.isNotEmpty) open(Map<String, dynamic>.from(m.data));
     }
 
     try {

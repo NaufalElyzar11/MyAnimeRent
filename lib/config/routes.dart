@@ -13,6 +13,11 @@ import '../screens/search_screen.dart';
 import '../screens/see_more_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/signup_screen.dart';
+import '../screens/store/product_editor_screen.dart';
+import '../screens/store/store_home_screen.dart';
+import '../screens/store/store_profile_screen.dart';
+import '../screens/store/store_request_detail_screen.dart';
+import '../screens/store/unit_schedule_screen.dart';
 import '../screens/store_detail_screen.dart';
 import '../screens/store_screen.dart';
 import '../screens/wishlist_screen.dart';
@@ -26,7 +31,9 @@ bool isPrivatePath(String path) =>
     path == '/wishlist' ||
     path == '/rental_history' ||
     path == '/notifications' ||
-    path.startsWith('/requests');
+    path.startsWith('/requests') ||
+    path == '/store' ||
+    path.startsWith('/store/');
 
 GoRouter createRouter(AuthProvider authProvider) {
   return GoRouter(
@@ -71,7 +78,43 @@ GoRouter createRouter(AuthProvider authProvider) {
             path: '/profile',
             pageBuilder: (context, state) => const NoTransitionPage(child: ProfileScreen()),
           ),
+          GoRoute(
+            path: '/store',
+            pageBuilder: (context, state) => const NoTransitionPage(child: StoreHomeScreen()),
+          ),
         ],
+      ),
+      GoRoute(
+        path: '/store/products/new',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => ProductEditorScreen(storeId: state.uri.queryParameters['store']),
+      ),
+      GoRoute(
+        path: '/store/products/:productId',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => ProductEditorScreen(productId: state.pathParameters['productId']),
+      ),
+      GoRoute(
+        path: '/store/profile',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => StoreProfileScreen(storeId: state.uri.queryParameters['store'] ?? ''),
+      ),
+      GoRoute(
+        path: '/store/requests/:requestId',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => StoreRequestDetailScreen(requestId: state.pathParameters['requestId']!),
+      ),
+      GoRoute(
+        path: '/store/units/:unitId',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final month = state.uri.queryParameters['month'];
+          return UnitScheduleScreen(
+            storeId: state.uri.queryParameters['store'] ?? '',
+            unitId: state.pathParameters['unitId']!,
+            initialMonth: month == null ? null : DateTime.tryParse('$month-01'),
+          );
+        },
       ),
       GoRoute(
         path: '/detail/:costumeId',

@@ -125,8 +125,11 @@ class RequestTile extends StatelessWidget {
 }
 
 class StatusChip extends StatelessWidget {
-  const StatusChip({super.key, required this.status});
+  const StatusChip({super.key, required this.status, this.storeView = false});
   final RequestStatus status;
+
+  /// Label dari sisi toko ("Baru", "Sudah dibalas") alih-alih sisi penyewa.
+  final bool storeView;
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +145,7 @@ class StatusChip extends StatelessWidget {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(status.label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12)),
+      child: Text(storeView ? status.storeLabel : status.label, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12)),
     );
   }
 }

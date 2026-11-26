@@ -23,6 +23,18 @@ class AppNotification {
   bool get isRead => readAt != null;
   String? get requestId => data['request_id']?.toString();
 
+  /// Penerima dari sisi toko (owner/staf) atau penyewa; menentukan layar yang dibuka.
+  bool get forStore => data['audience'] == 'store';
+
+  /// Layar tujuan saat notifikasi diketuk.
+  String? get route => routeFor(data);
+
+  static String? routeFor(Map<String, dynamic> data) {
+    final id = data['request_id']?.toString();
+    if (id == null || id.isEmpty) return null;
+    return data['audience'] == 'store' ? '/store/requests/$id' : '/requests/$id';
+  }
+
   AppNotification markedRead() => AppNotification(
         id: id,
         kind: kind,

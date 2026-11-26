@@ -5,11 +5,13 @@ import 'package:provider/provider.dart';
 
 import 'config/routes.dart';
 import 'config/theme.dart';
+import 'models/app_notification.dart';
 import 'providers/auth_provider.dart';
 import 'providers/costume_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/rental_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/store_admin_provider.dart';
 import 'providers/wishlist_provider.dart';
 import 'services/push_service.dart';
 
@@ -27,6 +29,7 @@ class _MyAnimeRentAppState extends State<MyAnimeRentApp> {
   late final RentalProvider _rentalProvider;
   late final WishlistProvider _wishlistProvider;
   late final NotificationProvider _notificationProvider;
+  late final StoreAdminProvider _storeAdminProvider;
   late final GoRouter _router;
   String? _sessionUserId;
 
@@ -38,14 +41,23 @@ class _MyAnimeRentAppState extends State<MyAnimeRentApp> {
     _costumeProvider = CostumeProvider();
     _rentalProvider = RentalProvider();
     _wishlistProvider = WishlistProvider();
+    _storeAdminProvider = StoreAdminProvider();
     _notificationProvider = NotificationProvider()
       ..onNew = (n) {
-        if (n.requestId != null) _rentalProvider.loadRequests();
+        if (n.requestId == null) return;
+        if (n.forStore) {
+          _storeAdminProvider.loadRequests();
+        } else {
+          _rentalProvider.loadRequests();
+        }
       };
     _router = createRouter(_authProvider);
     _authProvider.addListener(_onAuthChanged);
     _onAuthChanged();
-    PushService.listenTaps((requestId) => _router.push('/requests/$requestId'));
+    PushService.listenTaps((data) {
+      final route = AppNotification.routeFor(data);
+      if (route != null) _router.push(route);
+    });
   }
 
   /// Data pribadi dimuat saat login dan dibersihkan saat logout / ganti akun.
@@ -56,11 +68,13 @@ class _MyAnimeRentAppState extends State<MyAnimeRentApp> {
     if (userId == null) {
       _wishlistProvider.clear();
       _rentalProvider.clear();
+      _storeAdminProvider.clear();
       _notificationProvider.stop();
       return;
     }
     _wishlistProvider.loadWishlist();
     _rentalProvider.loadRequests();
+    _storeAdminProvider.loadStores();
     _notificationProvider.start(userId);
     PushService.register();
   }
@@ -74,6 +88,7 @@ class _MyAnimeRentAppState extends State<MyAnimeRentApp> {
     _rentalProvider.dispose();
     _wishlistProvider.dispose();
     _notificationProvider.dispose();
+    _storeAdminProvider.dispose();
     _router.dispose();
     super.dispose();
   }
@@ -87,6 +102,7 @@ class _MyAnimeRentAppState extends State<MyAnimeRentApp> {
         ChangeNotifierProvider.value(value: _rentalProvider),
         ChangeNotifierProvider.value(value: _wishlistProvider),
         ChangeNotifierProvider.value(value: _notificationProvider),
+        ChangeNotifierProvider.value(value: _storeAdminProvider),
         ChangeNotifierProvider.value(value: _settingsProvider),
       ],
       child: ListenableBuilder(

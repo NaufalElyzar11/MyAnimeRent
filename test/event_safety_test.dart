@@ -4,9 +4,12 @@ import 'package:myanimerent/config/event_safety.dart';
 import 'package:myanimerent/providers/auth_provider.dart';
 import 'package:myanimerent/providers/notification_provider.dart';
 import 'package:myanimerent/providers/rental_provider.dart';
+import 'package:myanimerent/providers/store_admin_provider.dart';
 import 'package:myanimerent/providers/wishlist_provider.dart';
 import 'package:myanimerent/services/auth_service.dart';
 import 'package:myanimerent/services/database_service.dart';
+import 'package:myanimerent/services/store_admin_service.dart';
+import 'package:myanimerent/services/store_catalog_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +25,9 @@ void main() {
       expect(RentalProvider.new, throwsStateError);
       expect(WishlistProvider.new, throwsStateError);
       expect(NotificationProvider.new, throwsStateError);
+      expect(StoreAdminService.new, throwsStateError);
+      expect(StoreAdminProvider.new, throwsStateError);
+      expect(StoreCatalogService.new, throwsStateError);
       await expectLater(database.searchProducts(query: '2B'), throwsStateError);
       await expectLater(database.getCostumeById('test'), throwsStateError);
       await expectLater(

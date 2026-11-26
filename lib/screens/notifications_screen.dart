@@ -69,8 +69,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     isThreeLine: n.body != null && n.body!.isNotEmpty,
                     onTap: () {
                       provider.markRead(n);
-                      final id = n.requestId;
-                      if (id != null) context.push('/requests/$id');
+                      final route = n.route;
+                      if (route != null) context.push(route);
                     },
                   );
                 },
