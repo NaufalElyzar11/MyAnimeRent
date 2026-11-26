@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- HANYA build debug: Supabase lokal (http://10.0.2.2:54321) belum memakai HTTPS.
+         Build release tetap menolak HTTP biasa. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

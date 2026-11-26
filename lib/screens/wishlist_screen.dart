@@ -42,12 +42,12 @@ class _WishlistScreenState extends State<WishlistScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('My Wishlist'),
+        title: const Text('Wishlist'),
         backgroundColor: Colors.transparent,
       ),
       body: RefreshIndicator(
         onRefresh: () => context.read<WishlistProvider>().loadWishlist(),
-        child: provider.isLoading
+        child: provider.isLoading && provider.wishlistItems.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : provider.wishlistItems.isEmpty
             ? LayoutBuilder(

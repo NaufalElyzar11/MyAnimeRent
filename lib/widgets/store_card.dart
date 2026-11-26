@@ -116,18 +116,26 @@ class StoreCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: AppColors.yellow, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        store.rating.toStringAsFixed(1),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.primary,
+                  if (store.rating > 0)
+                    Row(
+                      children: [
+                        const Icon(Icons.star, color: AppColors.yellow, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          store.rating.toStringAsFixed(1),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
+                      ],
+                    )
+                  else
+                    Text(
+                      '${store.productCount} kostum',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
                       ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),

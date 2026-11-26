@@ -1,124 +1,133 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
+
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/push_service.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final AuthService _authService = AuthService();
+  AuthProvider() : _authService = AuthService() {
+    _isLoggedIn = _authService.currentUser != null;
+    if (_isLoggedIn) refreshUser();
+    _sub = _authService.authStateChanges.listen(_onAuthState);
+  }
+
+  final AuthService _authService;
+  StreamSubscription<AuthState>? _sub;
 
   AppUser? _user;
   bool _isLoading = false;
   String? _error;
+  String? _info;
   bool _isLoggedIn = false;
 
   AppUser? get user => _user;
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  /// Pesan non-error, mis. "cek email untuk konfirmasi".
+  String? get info => _info;
   bool get isLoggedIn => _isLoggedIn;
+  String? get userId => _authService.currentUser?.id;
+
+  Future<void> _onAuthState(AuthState state) async {
+    final loggedIn = state.session != null;
+    if (loggedIn == _isLoggedIn && (_user != null || !loggedIn)) return;
+    _isLoggedIn = loggedIn;
+    _user = loggedIn ? await _authService.getCurrentAppUser() : null;
+    notifyListeners();
+  }
 
   void clearError() {
-    if (_error != null) {
+    if (_error != null || _info != null) {
       _error = null;
+      _info = null;
       notifyListeners();
     }
   }
 
-  AuthProvider() {
-    _authService.authStateChanges.listen((firebaseUser) async {
-      if (firebaseUser != null) {
-        _user = await _authService.getCurrentAppUser();
-        _isLoggedIn = true;
-      } else {
-        _user = null;
-        _isLoggedIn = false;
-      }
-      notifyListeners();
-    });
+  void _start() {
+    _isLoading = true;
+    _error = null;
+    _info = null;
+    notifyListeners();
+  }
+
+  void _fail(Object e) {
+    _error = AuthService.messageFor(e);
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<bool> signIn(String email, String password) async {
     final cleanEmail = email.trim();
-    final cleanPassword = password.trim();
-
-    if (cleanEmail.isEmpty || cleanPassword.isEmpty) {
-      _error = 'Email and password cannot be empty';
+    if (cleanEmail.isEmpty || password.isEmpty) {
+      _error = 'Email dan kata sandi wajib diisi.';
       notifyListeners();
       return false;
     }
-
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+    _start();
     try {
-      await _authService.signIn(cleanEmail, cleanPassword);
+      await _authService.signIn(cleanEmail, password);
       _user = await _authService.getCurrentAppUser();
       _isLoggedIn = true;
       _isLoading = false;
       notifyListeners();
       return true;
-    } on FirebaseAuthException catch (e) {
-      _error = e.message ?? 'Login failed';
-      _isLoading = false;
-      notifyListeners();
-      return false;
     } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
+      _fail(e);
       return false;
     }
   }
 
+  /// true = akun dibuat. Bila konfirmasi email aktif, pengguna belum login dan [info] berisi petunjuk.
   Future<bool> signUp(String email, String password, String name) async {
     final cleanEmail = email.trim();
-    final cleanPassword = password.trim();
     final cleanName = name.trim();
-
-    if (cleanName.isEmpty || cleanEmail.isEmpty || cleanPassword.isEmpty) {
-      _error = 'Name, email, and password cannot be empty';
+    if (cleanName.isEmpty || cleanEmail.isEmpty || password.isEmpty) {
+      _error = 'Nama, email, dan kata sandi wajib diisi.';
       notifyListeners();
       return false;
     }
-
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(cleanEmail)) {
-      _error = 'The email address is badly formatted';
+      _error = 'Format email tidak valid.';
       notifyListeners();
       return false;
     }
-
-    if (cleanPassword.length < 6) {
-      _error = 'Password should be at least 6 characters';
+    if (password.length < 8) {
+      _error = 'Kata sandi minimal 8 karakter.';
       notifyListeners();
       return false;
     }
-
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+    _start();
     try {
-      await _authService.signUp(cleanEmail, cleanPassword, cleanName);
+      final res = await _authService.signUp(cleanEmail, password, cleanName);
+      if (res.session == null) {
+        _info = 'Akun dibuat. Buka tautan konfirmasi di email $cleanEmail, lalu masuk.';
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
       _user = await _authService.getCurrentAppUser();
       _isLoggedIn = true;
       _isLoading = false;
       notifyListeners();
       return true;
-    } on FirebaseAuthException catch (e) {
-      _error = e.message ?? 'Sign up failed';
-      _isLoading = false;
-      notifyListeners();
-      return false;
     } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
+      _fail(e);
       return false;
     }
   }
 
   Future<void> signOut() async {
-    await _authService.signOut();
+    await PushService.unregister();
+    try {
+      await _authService.signOut();
+    } catch (_) {
+      // Sesi lokal tetap dibersihkan walau server tidak terjangkau.
+    }
     _user = null;
     _isLoggedIn = false;
     notifyListeners();
@@ -129,89 +138,42 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> updateProfileImage(String imageUrl) async {
+  Future<bool> updateUserProfile({required String name, String? phoneNumber}) async {
+    _start();
     try {
-      await _authService.updateProfileImage(imageUrl);
-      if (_user != null) {
-        _user = AppUser(
-          id: _user!.id,
-          email: _user!.email,
-          name: _user!.name,
-          profileImageUrl: imageUrl,
-          phoneNumber: _user!.phoneNumber,
-          address: _user!.address,
-        );
-      }
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> updateUserProfile({
-    required String name,
-    String? phoneNumber,
-    String? address,
-  }) async {
-    try {
-      _isLoading = true;
-      notifyListeners();
-      await _authService.updateUserProfile(
-        name: name,
-        phoneNumber: phoneNumber,
-        address: address,
-      );
-      if (_user != null) {
-        _user = AppUser(
-          id: _user!.id,
-          email: _user!.email,
-          name: name,
-          profileImageUrl: _user!.profileImageUrl,
-          phoneNumber: phoneNumber,
-          address: address,
-        );
-      }
+      final phone = AuthService.normalizePhone(phoneNumber);
+      await _authService.updateUserProfile(name: name, phoneNumber: phone);
+      _user = _user?.copyWith(name: name, phoneNumber: phone);
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
+      _fail(e);
       return false;
     }
   }
 
   Future<bool> sendPasswordResetEmail(String email) async {
-    final cleanEmail = email.trim();
-    if (cleanEmail.isEmpty) {
-      _error = 'Please enter your email address';
+    if (email.trim().isEmpty) {
+      _error = 'Masukkan alamat email akun Anda.';
       notifyListeners();
       return false;
     }
-
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+    _start();
     try {
-      await _authService.sendPasswordResetEmail(cleanEmail);
+      await _authService.sendPasswordResetEmail(email);
       _isLoading = false;
       notifyListeners();
       return true;
-    } on FirebaseAuthException catch (e) {
-      _error = e.message ?? 'Failed to send password reset email';
-      _isLoading = false;
-      notifyListeners();
-      return false;
     } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
+      _fail(e);
       return false;
     }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 }

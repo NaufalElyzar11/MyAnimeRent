@@ -292,12 +292,21 @@ class _SignupScreenState extends State<SignupScreen> {
                           ? null
                           : () async {
                               final router = GoRouter.of(context);
+                              final messenger = ScaffoldMessenger.of(context);
                               final success = await auth.signUp(
                                 _emailController.text.trim(),
-                                _passwordController.text.trim(),
+                                _passwordController.text,
                                 _nameController.text.trim(),
                               );
-                              if (success && mounted) {
+                              if (!success || !mounted) return;
+                              if (auth.info != null) {
+                                // Konfirmasi email aktif: akun dibuat tetapi belum login.
+                                messenger.showSnackBar(SnackBar(
+                                  content: Text(auth.info!),
+                                  duration: const Duration(seconds: 8),
+                                ));
+                                router.go('/login');
+                              } else {
                                 router.go('/home');
                               }
                             },

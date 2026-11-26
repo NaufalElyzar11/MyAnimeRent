@@ -51,12 +51,12 @@ class AppShell extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
-            label: navigationShell == null ? 'Home' : 'Beranda',
+            label: 'Beranda',
           ),
           NavigationDestination(
             icon: Icon(Icons.search_outlined),
             selectedIcon: Icon(Icons.search),
-            label: navigationShell == null ? 'Search' : 'Cari',
+            label: 'Cari',
           ),
           NavigationDestination(
             icon: Icon(Icons.favorite_outline),
@@ -66,7 +66,7 @@ class AppShell extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: navigationShell == null ? 'Profile' : 'Profil',
+            label: 'Profil',
           ),
         ],
       ),

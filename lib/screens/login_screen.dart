@@ -384,12 +384,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? null
                           : () async {
                               final router = GoRouter.of(context);
+                              final from = GoRouterState.of(context).uri.queryParameters['from'];
                               final success = await auth.signIn(
                                 _emailController.text.trim(),
-                                _passwordController.text.trim(),
+                                _passwordController.text,
                               );
                               if (success && mounted) {
-                                router.go('/home');
+                                router.go(from != null && from.startsWith('/') && !from.startsWith('//') ? from : '/home');
                               }
                             },
                       style: ElevatedButton.styleFrom(
@@ -449,6 +450,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ),
+                    ),
+                  ),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => context.go('/home'),
+                      child: const Text('Lihat katalog tanpa masuk'),
                     ),
                   ),
                   const SizedBox(height: 16),

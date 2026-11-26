@@ -1,86 +1,82 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../providers/auth_provider.dart';
-import '../screens/login_screen.dart';
-import '../screens/signup_screen.dart';
 import '../screens/home_screen.dart';
-import '../screens/search_screen.dart';
+import '../screens/login_screen.dart';
+import '../screens/notifications_screen.dart';
 import '../screens/product_detail_screen.dart';
-import '../screens/wishlist_screen.dart';
-import '../screens/rental_history_screen.dart';
 import '../screens/profile_screen.dart';
-import '../screens/settings_screen.dart';
-import '../screens/store_screen.dart';
-import '../screens/store_detail_screen.dart';
+import '../screens/rental_history_screen.dart';
+import '../screens/request_detail_screen.dart';
+import '../screens/search_screen.dart';
 import '../screens/see_more_screen.dart';
-import '../screens/admin/admin_dashboard_screen.dart';
-import '../screens/admin/costume_form_screen.dart';
-import '../screens/admin/store_form_screen.dart';
+import '../screens/settings_screen.dart';
+import '../screens/signup_screen.dart';
+import '../screens/store_detail_screen.dart';
+import '../screens/store_screen.dart';
+import '../screens/wishlist_screen.dart';
 import '../widgets/app_shell.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Halaman yang butuh akun. Katalog, detail, toko dan profil (versi tamu) bisa dibuka tanpa login.
+bool isPrivatePath(String path) =>
+    path == '/wishlist' ||
+    path == '/rental_history' ||
+    path == '/notifications' ||
+    path.startsWith('/requests');
+
 GoRouter createRouter(AuthProvider authProvider) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     refreshListenable: authProvider,
-    initialLocation: '/login',
+    initialLocation: '/home',
     redirect: (context, state) {
       final loggedIn = authProvider.isLoggedIn;
-      final loggingIn = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/signup';
-
-      if (!loggedIn && !loggingIn) return '/login';
-      if (loggedIn && loggingIn) return '/home';
+      final path = state.matchedLocation;
+      final onAuthPage = path == '/login' || path == '/signup';
+      if (!loggedIn && isPrivatePath(path)) {
+        return Uri(path: '/login', queryParameters: {'from': state.uri.toString()}).toString();
+      }
+      if (loggedIn && onAuthPage) {
+        final from = state.uri.queryParameters['from'];
+        return (from != null && from.startsWith('/') && !from.startsWith('//')) ? from : '/home';
+      }
+      if (path == '/rental_history') return '/requests';
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/signup',
-        builder: (context, state) => const SignupScreen(),
-      ),
+      GoRoute(path: '/', redirect: (_, _) => '/home'),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(path: '/signup', builder: (context, state) => const SignupScreen()),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => AppShell(child: child),
         routes: [
           GoRoute(
             path: '/home',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: HomeScreen(),
-            ),
+            pageBuilder: (context, state) => const NoTransitionPage(child: HomeScreen()),
           ),
           GoRoute(
             path: '/search',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: SearchScreen(),
-            ),
+            pageBuilder: (context, state) => const NoTransitionPage(child: SearchScreen()),
           ),
           GoRoute(
             path: '/wishlist',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: WishlistScreen(),
-            ),
+            pageBuilder: (context, state) => const NoTransitionPage(child: WishlistScreen()),
           ),
           GoRoute(
             path: '/profile',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ProfileScreen(),
-            ),
+            pageBuilder: (context, state) => const NoTransitionPage(child: ProfileScreen()),
           ),
         ],
       ),
       GoRoute(
         path: '/detail/:costumeId',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
-          final costumeId = state.pathParameters['costumeId']!;
-          return ProductDetailScreen(costumeId: costumeId);
-        },
+        builder: (context, state) => ProductDetailScreen(costumeId: state.pathParameters['costumeId']!),
       ),
       GoRoute(
         path: '/settings',
@@ -93,6 +89,23 @@ GoRouter createRouter(AuthProvider authProvider) {
         builder: (context, state) => const RentalHistoryScreen(),
       ),
       GoRoute(
+        path: '/requests',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const RentalHistoryScreen(),
+        routes: [
+          GoRoute(
+            path: ':requestId',
+            parentNavigatorKey: _rootNavigatorKey,
+            builder: (context, state) => RequestDetailScreen(requestId: state.pathParameters['requestId']!),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/notifications',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
         path: '/stores',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const StoreScreen(),
@@ -100,49 +113,12 @@ GoRouter createRouter(AuthProvider authProvider) {
       GoRoute(
         path: '/store_detail/:storeId',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
-          final storeId = state.pathParameters['storeId']!;
-          return StoreDetailScreen(storeId: storeId);
-        },
+        builder: (context, state) => StoreDetailScreen(storeId: state.pathParameters['storeId']!),
       ),
       GoRoute(
         path: '/see_more/:anime',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
-          final anime = state.pathParameters['anime']!;
-          return SeeMoreScreen(anime: anime);
-        },
-      ),
-      GoRoute(
-        path: '/admin',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const AdminDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/admin/costume/add',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const CostumeFormScreen(),
-      ),
-      GoRoute(
-        path: '/admin/costume/edit/:id',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
-          final id = state.pathParameters['id'];
-          return CostumeFormScreen(costumeId: id);
-        },
-      ),
-      GoRoute(
-        path: '/admin/store/add',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const StoreFormScreen(),
-      ),
-      GoRoute(
-        path: '/admin/store/edit/:id',
-        parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) {
-          final id = state.pathParameters['id'];
-          return StoreFormScreen(storeId: id);
-        },
+        builder: (context, state) => SeeMoreScreen(anime: state.pathParameters['anime']!),
       ),
     ],
   );

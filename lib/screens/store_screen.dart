@@ -13,16 +13,16 @@ class StoreScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Stores'),
+        title: const Text('Toko rental'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
       ),
-      body: provider.isLoading
+      body: provider.isLoading && provider.stores.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : provider.stores.isEmpty
-              ? const Center(child: Text('No stores found.'))
+              ? const Center(child: Text('Belum ada toko yang tayang.'))
               : GridView.builder(
                   padding: const EdgeInsets.all(16),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(

@@ -23,7 +23,7 @@ class SeeMoreScreen extends StatelessWidget {
         ),
       ),
       body: costumes.isEmpty
-          ? const Center(child: Text('No costumes found.'))
+          ? const Center(child: Text('Belum ada kostum di seri ini.'))
           : GridView.builder(
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(

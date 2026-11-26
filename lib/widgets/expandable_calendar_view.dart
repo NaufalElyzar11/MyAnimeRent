@@ -10,6 +10,9 @@ class ExpandableCalendarView extends StatefulWidget {
   final void Function(DateTime startDate, DateTime endDate)? onDateRangeSelected;
   final void Function(String message)? onSelectionInvalid;
 
+  /// Lama sewa yang dipilih saat satu tanggal diketuk (biasanya durasi paket toko).
+  final int rangeDays;
+
   const ExpandableCalendarView({
     super.key,
     required this.bookedDates,
@@ -17,6 +20,7 @@ class ExpandableCalendarView extends StatefulWidget {
     this.selectedEndDate,
     this.onDateRangeSelected,
     this.onSelectionInvalid,
+    this.rangeDays = 3,
   });
 
   @override
@@ -52,13 +56,13 @@ class _ExpandableCalendarViewState extends State<ExpandableCalendarView> {
     final today = DateTime(now.year, now.month, now.day);
     if (date.isBefore(today)) return;
     if (_isDateBooked(date)) {
-      widget.onSelectionInvalid?.call('Tanggal ini sudah dibooking.');
+      widget.onSelectionInvalid?.call('Tanggal ini sudah dipesan.');
       return;
     }
 
-    // Default range is 3 days (date to date + 2 days, min 3 days rental)
+    // Rentang default = lama paket (mis. 3 hari: tanggal ini s.d. +2 hari).
     final startDate = date;
-    final endDate = date.add(const Duration(days: 2));
+    final endDate = DateTime(date.year, date.month, date.day + (widget.rangeDays < 1 ? 0 : widget.rangeDays - 1));
 
     // Verify no dates in the 3-day range are booked
     bool isRangeBooked = false;
@@ -73,7 +77,7 @@ class _ExpandableCalendarViewState extends State<ExpandableCalendarView> {
 
     if (isRangeBooked) {
       widget.onSelectionInvalid?.call(
-          'Satu atau lebih tanggal dalam rentang 3 hari ini sudah dibooking.');
+          'Satu atau lebih tanggal dalam rentang ${widget.rangeDays} hari ini sudah dipesan.');
     } else {
       widget.onDateRangeSelected?.call(startDate, endDate);
     }
@@ -85,7 +89,7 @@ class _ExpandableCalendarViewState extends State<ExpandableCalendarView> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    final monthName = DateFormat('MMMM yyyy').format(_visibleDate);
+    final monthName = DateFormat('MMMM yyyy', 'id_ID').format(_visibleDate);
 
     // Compute dates for the grid
     final List<DateTime> dates;
@@ -103,7 +107,7 @@ class _ExpandableCalendarViewState extends State<ExpandableCalendarView> {
           42, (i) => firstDayOfGrid.add(Duration(days: i)));
     }
 
-    final weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    final weekdays = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -138,8 +142,8 @@ class _ExpandableCalendarViewState extends State<ExpandableCalendarView> {
                         : Icons.keyboard_arrow_up,
                   ),
                   tooltip: _displayMode == CalendarDisplayMode.week
-                      ? 'Expand Month'
-                      : 'Collapse Week',
+                      ? 'Tampilkan sebulan'
+                      : 'Tampilkan seminggu',
                   onPressed: () {
                     setState(() {
                       _displayMode = _displayMode == CalendarDisplayMode.week
@@ -262,20 +266,20 @@ class _ExpandableCalendarViewState extends State<ExpandableCalendarView> {
           children: [
             _LegendItem(
               color: theme.colorScheme.primary,
-              label: 'Selected',
+              label: 'Dipilih',
               isCircle: true,
             ),
             const SizedBox(width: 16),
             _LegendItem(
               color: theme.colorScheme.surfaceContainerHighest,
-              label: 'Booked',
+              label: 'Sudah dipesan',
               isStrikethrough: true,
             ),
             const SizedBox(width: 16),
             _LegendItem(
               color: Colors.transparent,
               borderColor: theme.colorScheme.primary,
-              label: 'Today',
+              label: 'Hari ini',
             ),
           ],
         ),

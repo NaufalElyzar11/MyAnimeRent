@@ -1,70 +1,77 @@
 import 'package:flutter/material.dart';
-import '../models/costume.dart';
-import '../services/database_service.dart';
-import '../services/auth_service.dart';
 
+import '../models/costume.dart';
+import '../services/auth_service.dart';
+import '../services/database_service.dart';
+
+/// Wishlist milik akun (tabel `wishlists`, RLS: hanya pemilik). Sama di app dan website.
 class WishlistProvider extends ChangeNotifier {
   final DatabaseService _dbService = DatabaseService();
   final AuthService _authService = AuthService();
 
   List<Costume> _wishlistItems = [];
+  final Set<String> _ids = {};
   bool _isLoading = false;
   String? _error;
 
   List<Costume> get wishlistItems => _wishlistItems;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get canUse => _authService.currentUser != null;
 
-  bool isItemInWishlist(String costumeId) {
-    return _wishlistItems.any((item) => item.id == costumeId);
-  }
+  bool isItemInWishlist(String costumeId) => _ids.contains(costumeId);
 
   Future<void> loadWishlist() async {
     final user = _authService.currentUser;
     if (user == null) return;
-
     _isLoading = true;
     notifyListeners();
-
     try {
-      final costumeIds = await _dbService.getWishlist(user.uid);
-      final results = await Future.wait(
-        costumeIds.map((id) => _dbService.getCostumeById(id)),
-      );
-      _wishlistItems = results.whereType<Costume>().toList();
-      _isLoading = false;
-      notifyListeners();
+      final ids = await _dbService.getWishlistIds(user.id);
+      _ids
+        ..clear()
+        ..addAll(ids);
+      _wishlistItems = await _dbService.getCostumesByIds(ids);
+      _error = null;
     } catch (e) {
       _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
     }
+    _isLoading = false;
+    notifyListeners();
   }
 
-  Future<bool> toggleWishlist(String costumeId) async {
+  /// Mengembalikan status baru; null bila belum login.
+  Future<bool?> toggleWishlist(String costumeId) async {
     final user = _authService.currentUser;
-    if (user == null) return false;
-
-    final isAlready = await _dbService.isWishlisted(user.uid, costumeId);
-    if (isAlready) {
-      await _dbService.removeFromWishlist(user.uid, costumeId);
-      _wishlistItems.removeWhere((item) => item.id == costumeId);
-      notifyListeners();
-      return false;
-    } else {
-      await _dbService.addToWishlist(user.uid, costumeId);
-      final costume = await _dbService.getCostumeById(costumeId);
-      if (costume != null && !_wishlistItems.any((c) => c.id == costumeId)) {
-        _wishlistItems.add(costume);
+    if (user == null) return null;
+    final wasIn = _ids.contains(costumeId);
+    // Perbarui tampilan dulu, kembalikan bila server menolak.
+    wasIn ? _ids.remove(costumeId) : _ids.add(costumeId);
+    notifyListeners();
+    try {
+      if (wasIn) {
+        await _dbService.removeFromWishlist(user.id, costumeId);
+        _wishlistItems.removeWhere((c) => c.id == costumeId);
+      } else {
+        await _dbService.addToWishlist(user.id, costumeId);
+        final added = await _dbService.getCostumesByIds([costumeId]);
+        _wishlistItems = [...added, ..._wishlistItems.where((c) => c.id != costumeId)];
       }
       notifyListeners();
-      return true;
+      return !wasIn;
+    } catch (e) {
+      wasIn ? _ids.add(costumeId) : _ids.remove(costumeId);
+      _error = e.toString();
+      notifyListeners();
+      return wasIn;
     }
   }
 
-  Future<bool> isWishlisted(String costumeId) async {
-    final user = _authService.currentUser;
-    if (user == null) return false;
-    return await _dbService.isWishlisted(user.uid, costumeId);
+  Future<bool> isWishlisted(String costumeId) async => _ids.contains(costumeId);
+
+  void clear() {
+    _ids.clear();
+    _wishlistItems = [];
+    notifyListeners();
   }
 }

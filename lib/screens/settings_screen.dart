@@ -14,7 +14,7 @@ class SettingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: const Text('Pengaturan'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -26,7 +26,7 @@ class SettingsScreen extends StatelessWidget {
           children: [
             // Theme Setting
             _SettingRow(
-              label: 'Theme',
+              label: 'Tema',
               currentValue: settings.currentTheme.name[0].toUpperCase() +
                   settings.currentTheme.name.substring(1),
               onTap: () {
@@ -56,8 +56,8 @@ class SettingsScreen extends StatelessWidget {
             ),
             const Divider(),
             _SettingRow(
-              label: 'Language',
-              currentValue: 'English',
+              label: 'Bahasa',
+              currentValue: 'Indonesia',
               onTap: () {},
             ),
 

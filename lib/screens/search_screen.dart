@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -18,33 +20,46 @@ class _SearchScreenState extends State<SearchScreen> {
   final _searchController = TextEditingController();
   List<Costume> _results = [];
   bool _isSearching = false;
+  String? _error;
+  Timer? _debounce;
+  int _seq = 0;
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
+  /// Pencarian di server (judul, karakter, seri, alias Jepang/Inggris, toleran salah ketik).
   void _onSearch(String query) {
-    final provider = context.read<CostumeProvider>();
-    if (query.length <= 2) {
+    _debounce?.cancel();
+    if (query.trim().length < 2) {
       setState(() {
         _results = [];
         _isSearching = false;
+        _error = null;
       });
       return;
     }
-
     setState(() => _isSearching = true);
-    final lowerQuery = query.toLowerCase();
-    final filtered = provider.costumes.where((c) {
-      return c.name.toLowerCase().contains(lowerQuery) ||
-          c.anime.toLowerCase().contains(lowerQuery);
-    }).toList();
-
-    setState(() {
-      _results = filtered;
-      _isSearching = false;
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      final seq = ++_seq;
+      try {
+        final found = await context.read<CostumeProvider>().search(query.trim());
+        if (!mounted || seq != _seq) return;
+        setState(() {
+          _results = found;
+          _error = null;
+          _isSearching = false;
+        });
+      } catch (e) {
+        if (!mounted || seq != _seq) return;
+        setState(() {
+          _error = 'Pencarian gagal. Periksa koneksi lalu coba lagi.';
+          _isSearching = false;
+        });
+      }
     });
   }
 
@@ -80,7 +95,7 @@ class _SearchScreenState extends State<SearchScreen> {
             controller: _searchController,
             onChanged: _onSearch,
             decoration: InputDecoration(
-              hintText: 'Search costumes or anime...',
+              hintText: 'Cari karakter, seri, atau kostum…',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
@@ -100,7 +115,24 @@ class _SearchScreenState extends State<SearchScreen> {
         Expanded(
           child: _isSearching
               ? const Center(child: CircularProgressIndicator())
-              : _searchController.text.length <= 2
+              : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 12),
+                        OutlinedButton(
+                          onPressed: () => _onSearch(_searchController.text),
+                          child: const Text('Coba lagi'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _searchController.text.trim().length < 2
               ? SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(

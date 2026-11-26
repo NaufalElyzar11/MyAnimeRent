@@ -1,14 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:image_picker/image_picker.dart';
 
-import '../providers/auth_provider.dart';
-import '../services/imgur_service.dart';
 import '../models/user.dart';
+import '../providers/auth_provider.dart';
+import '../providers/notification_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.guestBody});
@@ -19,73 +15,9 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _isUploadingImage = false;
-
-  Future<void> _pickAndUploadImage() async {
-    try {
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
-      );
-
-      if (pickedFile == null) return;
-
-      setState(() => _isUploadingImage = true);
-
-      final imgurService = ImgurService();
-      final imageUrl = await imgurService.uploadImage(File(pickedFile.path));
-
-      if (!mounted) return;
-
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        final success = await context.read<AuthProvider>().updateProfileImage(
-          imageUrl,
-        );
-        if (mounted) {
-          setState(() => _isUploadingImage = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                success
-                    ? 'Profile photo updated successfully!'
-                    : 'Failed to save profile photo',
-              ),
-              backgroundColor: success ? Colors.green : Colors.red,
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          setState(() => _isUploadingImage = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Failed to upload image. Please check your internet connection.',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isUploadingImage = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
   void _showEditProfileDialog(BuildContext context, AppUser? user) {
     final nameController = TextEditingController(text: user?.name ?? '');
-    final phoneController = TextEditingController(
-      text: user?.phoneNumber ?? '',
-    );
-    final addressController = TextEditingController(text: user?.address ?? '');
+    final phoneController = TextEditingController(text: user?.phoneNumber ?? '');
     final formKey = GlobalKey<FormState>();
     final theme = Theme.of(context);
 
@@ -93,146 +25,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: theme.scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (bottomSheetContext) {
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (sheetContext) {
         bool isSaving = false;
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade400,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Edit Profile',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => Navigator.pop(bottomSheetContext),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Full Name',
-                          prefixIcon: Icon(Icons.person_outline),
-                        ),
-                        validator: (v) => v == null || v.trim().isEmpty
-                            ? 'Name cannot be empty'
-                            : null,
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'WhatsApp / Phone Number',
-                          prefixIcon: Icon(Icons.phone_outlined),
-                          hintText: 'e.g. 08123456789',
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: addressController,
-                        maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: 'Delivery Address',
-                          prefixIcon: Icon(Icons.location_on_outlined),
-                          hintText: 'Enter complete shipping address',
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: isSaving
-                              ? null
-                              : () async {
-                                  if (!formKey.currentState!.validate()) return;
-                                  setModalState(() => isSaving = true);
-                                  final messenger = ScaffoldMessenger.of(
-                                    context,
-                                  );
-                                  final success = await context
-                                      .read<AuthProvider>()
-                                      .updateUserProfile(
-                                        name: nameController.text.trim(),
-                                        phoneNumber:
-                                            phoneController.text.trim().isEmpty
-                                            ? null
-                                            : phoneController.text.trim(),
-                                        address:
-                                            addressController.text
-                                                .trim()
-                                                .isEmpty
-                                            ? null
-                                            : addressController.text.trim(),
-                                      );
-                                  if (bottomSheetContext.mounted) {
-                                    Navigator.pop(bottomSheetContext);
-                                    messenger.showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          success
-                                              ? 'Profile updated successfully!'
-                                              : 'Failed to update profile',
-                                        ),
-                                        backgroundColor: success
-                                            ? Colors.green
-                                            : Colors.red,
-                                      ),
-                                    );
-                                  }
-                                },
-                          child: isSaving
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text('Save Changes'),
-                        ),
-                      ),
-                    ],
+          builder: (context, setModalState) => Padding(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Edit profil', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: nameController,
+                    maxLength: 80,
+                    decoration: const InputDecoration(labelText: 'Nama', prefixIcon: Icon(Icons.person_outline)),
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Nama wajib diisi' : null,
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Nomor HP / WhatsApp (opsional)',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                      hintText: '0812 3456 7890',
+                      helperText: 'Hanya terlihat oleh toko bila kamu mengizinkan saat mengajukan sewa.',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              if (!formKey.currentState!.validate()) return;
+                              setModalState(() => isSaving = true);
+                              final messenger = ScaffoldMessenger.of(context);
+                              final auth = context.read<AuthProvider>();
+                              final ok = await auth.updateUserProfile(
+                                name: nameController.text.trim(),
+                                phoneNumber: phoneController.text.trim(),
+                              );
+                              if (!sheetContext.mounted) return;
+                              if (ok) {
+                                Navigator.pop(sheetContext);
+                              } else {
+                                setModalState(() => isSaving = false);
+                              }
+                              messenger.showSnackBar(SnackBar(
+                                content: Text(ok ? 'Profil disimpan' : (auth.error ?? 'Gagal menyimpan profil')),
+                                backgroundColor: ok ? Colors.green : Colors.red,
+                              ));
+                            },
+                      child: isSaving
+                          ? const SizedBox(
+                              height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Simpan'),
+                    ),
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         );
       },
     );
@@ -254,301 +114,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = auth.user;
     final theme = Theme.of(context);
 
-    if (auth.isLoading && user == null) {
-      return const Center(child: CircularProgressIndicator());
+    if (!auth.isLoggedIn) {
+      return ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const SizedBox(height: 40),
+          Icon(Icons.account_circle_outlined, size: 96, color: theme.colorScheme.primary),
+          const SizedBox(height: 12),
+          Text('Masuk untuk menyewa', textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
+          const SizedBox(height: 8),
+          const Text(
+            'Katalog bisa dilihat tanpa akun. Untuk mengajukan sewa, menyimpan wishlist, dan menerima kabar dari toko, masuk atau daftar dulu.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(onPressed: () => context.push('/login'), child: const Text('Masuk')),
+          const SizedBox(height: 8),
+          OutlinedButton(onPressed: () => context.push('/signup'), child: const Text('Daftar')),
+          const SizedBox(height: 24),
+          _ProfileMenuItem(icon: Icons.settings, label: 'Pengaturan', onTap: () => context.push('/settings')),
+        ],
+      );
     }
 
+    final unread = context.watch<NotificationProvider>().unreadCount;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           const SizedBox(height: 32),
-          // Profile Image with camera badge
-          GestureDetector(
-            onTap: _isUploadingImage ? null : _pickAndUploadImage,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  backgroundImage:
-                      user?.profileImageUrl != null &&
-                          user!.profileImageUrl!.isNotEmpty
-                      ? CachedNetworkImageProvider(user.profileImageUrl!)
-                      : null,
-                  child:
-                      user?.profileImageUrl == null ||
-                          user!.profileImageUrl!.isEmpty
-                      ? const Icon(Icons.person, size: 60, color: Colors.grey)
-                      : null,
-                ),
-                if (_isUploadingImage)
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 3,
-                      ),
-                    ),
-                  ),
-                Positioned(
-                  bottom: 2,
-                  right: 2,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      size: 18,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: _isUploadingImage ? null : _pickAndUploadImage,
+          CircleAvatar(
+            radius: 48,
+            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
             child: Text(
-              _isUploadingImage ? 'Uploading photo...' : 'Tap to change photo',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
+              user?.initials ?? '?',
+              style: theme.textTheme.headlineMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Flexible(
-                child: Text(
-                  user?.name.isNotEmpty == true ? user!.name : 'Guest User',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (user?.isAdmin == true) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'ADMIN',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
           Text(
-            user?.email.isNotEmpty == true ? user!.email : 'No email',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            user?.name.isNotEmpty == true ? user!.name : 'Tanpa nama',
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 20),
-
-          // Admin Dashboard Access Card
-          if (user?.isAdmin == true) ...[
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.secondary,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => context.push('/admin'),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.admin_panel_settings_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Admin Dashboard',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Kelola Kostum, Toko & Pesanan',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          Text(user?.email ?? '', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          if (user?.phoneNumber != null) ...[
+            const SizedBox(height: 4),
+            Text(user!.phoneNumber!, style: theme.textTheme.bodyMedium),
           ],
-
-          // Contact & Shipping Info Card
-          Builder(
-            builder: (context) {
-              final phone = user?.phoneNumber;
-              final address = user?.address;
-              final hasPhone = phone != null && phone.isNotEmpty;
-              final hasAddress = address != null && address.isNotEmpty;
-
-              if (!hasPhone && !hasAddress) return const SizedBox.shrink();
-
-              return Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.35,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withValues(
-                      alpha: 0.4,
-                    ),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    if (hasPhone)
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.phone,
-                            size: 18,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              phone,
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ),
-                        ],
-                      ),
-                    if (hasPhone && hasAddress) const SizedBox(height: 8),
-                    if (hasAddress)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            size: 18,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              address,
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-
-          // Menu Items
+          const SizedBox(height: 20),
           _ProfileMenuItem(
             icon: Icons.edit_outlined,
-            label: 'Edit Profile',
+            label: 'Edit profil',
             onTap: () => _showEditProfileDialog(context, user),
           ),
           const Divider(),
           _ProfileMenuItem(
-            icon: Icons.history,
-            label: 'Rental History',
-            onTap: () => context.push('/rental_history'),
+            icon: Icons.receipt_long_outlined,
+            label: 'Permintaan sewa',
+            onTap: () => context.push('/requests'),
           ),
           const Divider(),
           _ProfileMenuItem(
-            icon: Icons.settings,
-            label: 'Settings',
-            onTap: () => context.push('/settings'),
+            icon: Icons.notifications_none,
+            label: unread > 0 ? 'Notifikasi ($unread baru)' : 'Notifikasi',
+            onTap: () => context.push('/notifications'),
           ),
+          const Divider(),
+          _ProfileMenuItem(icon: Icons.settings, label: 'Pengaturan', onTap: () => context.push('/settings')),
           const Divider(),
           _ProfileMenuItem(
             icon: Icons.logout,
-            label: 'Logout',
+            label: 'Keluar',
             showArrow: false,
             onTap: () async {
               await auth.signOut();
-              if (context.mounted) context.go('/login');
+              if (context.mounted) context.go('/home');
             },
           ),
         ],

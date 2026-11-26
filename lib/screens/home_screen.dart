@@ -1,10 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+import '../config/supabase_config.dart';
 import '../config/theme.dart';
+import '../providers/auth_provider.dart';
 import '../providers/costume_provider.dart';
+import '../providers/notification_provider.dart';
 import '../models/costume.dart';
 import '../widgets/costume_card.dart';
 import '../widgets/store_card.dart';
@@ -49,12 +53,25 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(provider.error!),
+            const Text('Katalog belum bisa dimuat. Periksa koneksi internet.'),
+            if (kDebugMode) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'Server: ${SupabaseConfig.url}\n'
+                  'HP fisik tidak bisa memakai 10.0.2.2 (khusus emulator). '
+                  'Lihat README bagian Konfigurasi.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: () =>
                   context.read<CostumeProvider>().loadData(force: true),
-              child: const Text('Try Again'),
+              child: const Text('Coba lagi'),
             ),
           ],
         ),
@@ -84,16 +101,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     height: 44,
                     fit: BoxFit.contain,
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.pink.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.search, color: AppColors.purple),
-                      onPressed: () => context.go('/search'),
-                      tooltip: 'Search Costumes',
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.pink.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.search, color: AppColors.purple),
+                          onPressed: () => context.go('/search'),
+                          tooltip: 'Cari kostum',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const _InboxButton(),
+                    ],
                   ),
                 ],
               ),
@@ -159,11 +183,11 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Top Cosrent', style: theme.textTheme.titleLarge),
+                Text('Toko rental', style: theme.textTheme.titleLarge),
                 GestureDetector(
                   onTap: () => context.push('/stores'),
                   child: Text(
-                    'See More',
+                    'Lihat semua',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.primary,
                     ),
@@ -176,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 140,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: provider.stores.take(3).length,
+                itemCount: provider.stores.take(6).length,
                 itemBuilder: (context, index) {
                   final store = provider.stores[index];
                   return GestureDetector(
@@ -197,14 +221,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               borderRadius: BorderRadius.circular(12),
                               child: CachedNetworkImage(
                                 imageUrl: store.imageUrl,
-                                width: 72,
-                                height: 72,
+                                width: 64,
+                                height: 64,
                                 fit: BoxFit.cover,
                                 errorWidget: (_, _, _) =>
                                     const Icon(Icons.store, size: 40),
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             Text(
                               store.name.isNotEmpty ? store.name : store.city,
                               style: theme.textTheme.bodyMedium?.copyWith(
@@ -225,6 +249,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
 
             const SizedBox(height: 24),
+
+            if (provider.costumes.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Text('Belum ada kostum yang tayang.'),
+              ),
 
             // Costumes grouped by anime
             for (final entry
@@ -436,7 +466,7 @@ class _CostumeSection extends StatelessWidget {
             GestureDetector(
               onTap: onSeeMore,
               child: Text(
-                catalogCards == null ? 'See More' : 'Lihat semua',
+                'Lihat semua',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.primary,
                 ),
@@ -484,6 +514,35 @@ class _CostumeSection extends StatelessWidget {
           ),
         const SizedBox(height: 24),
       ],
+    );
+  }
+}
+
+/// Lonceng notifikasi (atau tombol Masuk untuk tamu).
+class _InboxButton extends StatelessWidget {
+  const _InboxButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final loggedIn = context.watch<AuthProvider>().isLoggedIn;
+    if (!loggedIn) {
+      return TextButton(onPressed: () => context.push('/login'), child: const Text('Masuk'));
+    }
+    final unread = context.watch<NotificationProvider>().unreadCount;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.pink.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: IconButton(
+        tooltip: 'Notifikasi',
+        onPressed: () => context.push('/notifications'),
+        icon: Badge(
+          isLabelVisible: unread > 0,
+          label: Text(unread > 9 ? '9+' : '$unread'),
+          child: const Icon(Icons.notifications_none, color: AppColors.purple),
+        ),
+      ),
     );
   }
 }

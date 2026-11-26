@@ -9,14 +9,14 @@ flutter run --flavor event -t lib/main_event.dart
 flutter build apk --debug --flavor event -t lib/main_event.dart
 ```
 
-Data bawaan bersifat ilustratif, harga simulasi dan kontak nonaktif. [Panduan event, format snapshot, validasi dan lembar uji](../dokumen-saas/11-panduan-menjalankan-demo-event.md). Target default `lib/main.dart` tetap aplikasi lama; gunakan target event secara eksplisit.
+Data bawaan bersifat ilustratif, harga simulasi dan kontak nonaktif. [Panduan event, format snapshot, validasi dan lembar uji](../dokumen-saas/11-panduan-menjalankan-demo-event.md). Target default `lib/main.dart` adalah aplikasi utama yang terhubung ke Supabase; gunakan target event secara eksplisit.
 
 > *"Kostum Hari Ini, Cerita Seru Esok Nanti ✨"*  
 > **Platform rental kostum anime di Indonesia yang lebih terorganisir, praktis, dan terpercaya.**
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart)](https://dart.dev)
-[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%7C%20Database-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![Material Design 3](https://img.shields.io/badge/Design-Material%203-7B3FE4)](https://m3.material.io/)
 [![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20iOS%20%7C%20Web%20%7C%20Windows-FF4DA6)](#)
 
@@ -49,27 +49,14 @@ Logo dan palet warna MyAnimeRent dirancang untuk merefleksikan semangat kreativi
 
 ## ✨ Fitur Utama
 
-- 🔐 **Autentikasi Pengguna**: Registrasi akun dan login dengan Firebase Authentication, dilengkapi validasi interaktif dan visibilitas password.
-- 👘 **Eksplorasi Kostum**:
-  - Banner dinamis beranda dengan navigasi carousel.
-  - Pengelompokan katalog berdasarkan judul anime.
-  - Pencarian interaktif dengan pencocokan nama kostum dan karakter.
-  - Halaman detail kostum lengkap dengan galeri foto, spesifikasi ukuran, informasi toko penyedia, dan ulasan.
-- 🏪 **Direktori & Profil Toko (Cosrent)**:
-  - Daftar Top Cosrent terpercaya dengan lokasi kota dan rating rata-rata.
-  - Halaman profil toko lengkap dengan katalog kostum yang tersedia.
-- 📅 **Kalender Sewa & Booking**:
-  - Pilihan rentang tanggal sewa fleksibel (minimal 3 hari).
-  - Tampilan visual tanggal terisi (booked) dan tanggal yang tersedia.
-  - Riwayat penyewaan kostum yang telah dipesan.
-- ⭐ **Ulasan & Rating**:
-  - Ulasan pelanggan dengan penilaian bintang dan komentar.
-  - Dialog interaktif untuk menambahkan ulasan baru.
-- ❤️ **Wishlist**: Simpan kostum impian ke daftar favorit dan akses kapan saja.
-- 👤 **Profil Pengguna**:
-  - Pengelolaan profil dan unggah foto avatar langsung ke cloud (Imgur integration).
-- 🌓 **Tema Fleksibel**:
-  - Dukungan **Light Mode** dan **Dark Mode** modern dengan Material 3 ColorScheme yang nyaman di mata.
+- 🔐 **Akun**: daftar, masuk, dan lupa kata sandi lewat Supabase Auth. Katalog bisa dilihat tanpa masuk.
+- 👘 **Katalog kostum**: beranda per seri anime, pencarian di server (judul, karakter, seri, alias), detail dengan foto, ukuran, isi paket, harga, durasi, dan deposit.
+- 📅 **Cek tanggal tanpa chat**: kalender per ukuran menandai tanggal yang **sudah dipesan**. Tanggal kosong berarti "belum ada jadwal", bukan "pasti tersedia". Toko yang belum memakai kalender ditandai "tanyakan ke toko".
+- 📨 **Ajukan sewa dari app**: pilih ukuran dan tanggal, kirim permintaan, lalu ikuti statusnya (menunggu, dibalas, dikonfirmasi, ditolak, dibatalkan, kedaluwarsa). Ada pesan dua arah dengan toko; WA toko baru muncul setelah dikonfirmasi bila toko mengizinkan.
+- 🔔 **Notifikasi**: kotak masuk dalam app (realtime) dan push FCM saat app tertutup.
+- 🏪 **Direktori toko**: daftar toko terbit beserta katalognya.
+- ❤️ **Favorit** tersimpan di akun.
+- 🌓 **Tema terang/gelap** dengan Material 3.
 
 ---
 
@@ -78,14 +65,9 @@ Logo dan palet warna MyAnimeRent dirancang untuk merefleksikan semangat kreativi
 - **Framework**: [Flutter](https://flutter.dev) (Dart SDK `^3.13.2`)
 - **State Management**: [Provider](https://pub.dev/packages/provider)
 - **Routing**: [go_router](https://pub.dev/packages/go_router)
-- **Backend**:
-  - [firebase_core](https://pub.dev/packages/firebase_core)
-  - [firebase_auth](https://pub.dev/packages/firebase_auth)
-  - [firebase_database](https://pub.dev/packages/firebase_database)
-- **Image & Networking**:
-  - [cached_network_image](https://pub.dev/packages/cached_network_image)
-  - [http](https://pub.dev/packages/http)
-  - [image_picker](https://pub.dev/packages/image_picker)
+- **Backend**: [supabase_flutter](https://pub.dev/packages/supabase_flutter) (Auth, database dengan RLS, Edge Functions, Storage, Realtime)
+- **Push**: [firebase_core](https://pub.dev/packages/firebase_core) + [firebase_messaging](https://pub.dev/packages/firebase_messaging) (hanya FCM; data tidak lagi di Firebase)
+- **Gambar**: [cached_network_image](https://pub.dev/packages/cached_network_image)
 - **Local Storage**: [shared_preferences](https://pub.dev/packages/shared_preferences)
 - **Typography & UI**:
   - [google_fonts](https://pub.dev/packages/google_fonts) (Poppins)
@@ -98,34 +80,24 @@ Logo dan palet warna MyAnimeRent dirancang untuk merefleksikan semangat kreativi
 
 ```text
 lib/
-├── app.dart            # Inisialisasi MaterialApp & Router
-├── main.dart           # Entrypoint aplikasi & Firebase Init
-├── firebase_options.dart
+├── main.dart               # Entrypoint: Supabase.initialize + Firebase (push saja)
+├── main_event.dart         # Entrypoint mode event offline
+├── app.dart                # MaterialApp, provider, sinkron saat login/logout
 ├── config/
-│   ├── routes.dart     # Definisi GoRouter & proteksi auth
-│   └── theme.dart      # AppColors, Light Theme, & Dark Theme
-├── models/             # Costume, Store, Review, Rental models
-├── providers/          # Auth, Costume, Rental, Review, Wishlist, Settings
-├── services/           # AuthService, DatabaseService, ImgurService, Prefs
-├── screens/
-│   ├── home_screen.dart
-│   ├── login_screen.dart
-│   ├── signup_screen.dart
-│   ├── product_detail_screen.dart
-│   ├── search_screen.dart
-│   ├── wishlist_screen.dart
-│   ├── profile_screen.dart
-│   ├── settings_screen.dart
-│   ├── store_screen.dart
-│   ├── store_detail_screen.dart
-│   └── rental_history_screen.dart
+│   ├── supabase_config.dart  # SUPABASE_URL & kunci publishable dari --dart-define
+│   ├── event_safety.dart     # Mode event dilarang mengakses cloud
+│   ├── routes.dart           # GoRouter; halaman pribadi minta login
+│   └── theme.dart
+├── models/                 # Costume, Store, AppUser, RentalRequest, AppNotification, Availability
+├── providers/              # Auth, Costume, Rental, Wishlist, Notification, Settings
+├── services/
+│   ├── supabase_service.dart # Backend.call (Edge Function) / Backend.rpc + ApiException
+│   ├── auth_service.dart
+│   ├── database_service.dart # Katalog, cek tanggal, permintaan, pesan, notifikasi, favorit
+│   └── push_service.dart     # Token FCM ↔ register_push_token
+├── screens/                # Beranda, Cari, Detail, Permintaan Sewa, Detail Permintaan, Notifikasi, Profil, …
+├── event/                  # Katalog & layar mode event
 └── widgets/
-    ├── app_shell.dart
-    ├── costume_card.dart
-    ├── store_card.dart
-    ├── review_section.dart
-    ├── review_dialog.dart
-    └── expandable_calendar_view.dart
 ```
 
 ---
@@ -133,33 +105,42 @@ lib/
 ## 🚀 Panduan Memulai
 
 ### 1. Prasyarat
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (versi 3.13 atau yang lebih baru)
-- Perangkat Android, iOS Simulator, Chrome Browser, atau Windows desktop
+- Flutter SDK 3.x, Android Studio/emulator atau HP Android
+- Backend lokal berjalan (lihat [`../supabase/README.md`](../supabase/README.md)): `npx supabase start`, `npx supabase db reset`, `npx supabase functions serve`, lalu `npm run gambar-demo` di `supabase/tests/functions` agar katalog bergambar
 
-### 2. Instalasi Dependensi
-```bash
+### 2. Konfigurasi (sekali)
+```powershell
+Copy-Item env\local.example.json env\local.json
+```
+Isi `SUPABASE_PUBLISHABLE_KEY` dengan **Publishable key** dari `npx supabase status`. Jangan pernah memasukkan kunci *secret*/`service_role` ke app. `env/local.json` tidak ikut git.
+
+| Menjalankan di | `SUPABASE_URL` |
+|---|---|
+| Emulator Android | `http://10.0.2.2:54321` |
+| HP fisik lewat kabel USB (disarankan) | `http://127.0.0.1:54321`, setelah `adb reverse tcp:54321 tcp:54321` |
+| HP fisik lewat Wi-Fi yang sama | `http://<IP-komputer>:54321`, mis. `http://192.168.1.10:54321`; izinkan port 54321 di Windows Firewall |
+| Produksi | `https://<project-ref>.supabase.co` (buat `env/prod.json`) |
+
+### 3. Menjalankan
+```powershell
 flutter pub get
+flutter run --flavor standard --dart-define-from-file=env/local.json
 ```
 
-### 3. Menjalankan Aplikasi
-Jalankan di emulator atau perangkat yang terhubung:
-```bash
-flutter run
+HP fisik lewat USB: `10.0.2.2` hanya berlaku di emulator, jadi di HP katalog akan gagal dimuat. Teruskan port komputer ke HP, lalu pakai file konfigurasi khusus HP:
+```powershell
+adb reverse tcp:54321 tcp:54321          # ulangi setiap kali kabel dicabut / HP tersambung ulang
+Copy-Item env\hp-usb.example.json env\hp-usb.json   # sekali
+flutter run --flavor standard --dart-define-from-file=env/hp-usb.json
 ```
+Tanpa `--dart-define-from-file`, app menampilkan layar "konfigurasi belum diisi".
 
-Atau pilih target spesifik:
-```bash
-# Menjalankan di Chrome Web
-flutter run -d chrome
+Akun demo lokal (kata sandi `demo12345`): `penyewa@demo.local` untuk mencoba booking; `owner-a@demo.local` menerima permintaannya (sementara dijawab lewat Studio/skrip, dashboard toko ada di website nanti).
 
-# Menjalankan di Windows Desktop
-flutter run -d windows
-```
-
-### 4. Menjalankan Analisis Kode
-Pastikan tidak ada linting error:
-```bash
+### 4. Pemeriksaan
+```powershell
 flutter analyze
+flutter test
 ```
 
 ---

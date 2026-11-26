@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
@@ -124,8 +125,12 @@ class CostumeCard extends StatelessWidget {
                           costume.id,
                         );
                         return GestureDetector(
-                          onTap: () {
-                            wishlistProvider.toggleWishlist(costume.id);
+                          onTap: () async {
+                            final result = await wishlistProvider.toggleWishlist(costume.id);
+                            if (result == null && context.mounted) {
+                              // Tamu: wishlist tersimpan di akun, jadi minta masuk dulu.
+                              context.push('/login?from=${Uri.encodeComponent('/detail/${costume.id}')}');
+                            }
                           },
                           child: Container(
                             padding: const EdgeInsets.all(6),
@@ -163,7 +168,9 @@ class CostumeCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'From: ${costume.anime}',
+                    costume.storeName.isNotEmpty
+                        ? '${costume.storeName}${costume.city.isEmpty ? '' : ' · ${costume.city}'}'
+                        : costume.anime,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -172,7 +179,9 @@ class CostumeCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Rp ${formatter.format(costume.price.toInt())}',
+                    costume.hasPrice
+                        ? 'Rp ${formatter.format(costume.price.toInt())} / ${costume.durationDays} hari'
+                        : 'Harga belum diinformasikan',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: theme.colorScheme.primary,

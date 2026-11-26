@@ -47,3 +47,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Konfigurasi Supabase per lingkungan (contoh: env/local.example.json)
+/env/*.json
+!/env/*.example.json

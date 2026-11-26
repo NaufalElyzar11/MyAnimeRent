@@ -1,103 +1,130 @@
+// Tes model data dari Supabase (nama file lama dipertahankan).
 import 'package:flutter_test/flutter_test.dart';
-import 'package:myanimerent/models/user.dart';
+import 'package:myanimerent/models/availability.dart';
 import 'package:myanimerent/models/costume.dart';
+import 'package:myanimerent/models/rental_request.dart';
 import 'package:myanimerent/models/store.dart';
-import 'package:myanimerent/models/rental_transaction.dart';
+import 'package:myanimerent/models/user.dart';
+import 'package:myanimerent/services/auth_service.dart';
+import 'package:myanimerent/services/supabase_service.dart';
+
+String img(String path) => 'https://cdn.uji/$path';
 
 void main() {
-  group('Admin & Models Unit Tests', () {
-    test('AppUser handles role and isAdmin correctly', () {
-      final regularUser = AppUser(
-        id: 'u1',
-        email: 'user@test.com',
-        name: 'Regular User',
-      );
-      expect(regularUser.role, 'user');
-      expect(regularUser.isAdmin, isFalse);
-
-      final adminUser = AppUser(
-        id: 'u2',
-        email: 'admin@test.com',
-        name: 'Admin Boss',
-        role: 'admin',
-      );
-      expect(adminUser.role, 'admin');
-      expect(adminUser.isAdmin, isTrue);
-
-      final fromMapUser = AppUser.fromMap({
-        'email': 'admin2@test.com',
-        'name': 'Admin Two',
-        'role': 'Admin',
-      }, 'u3');
-      expect(fromMapUser.isAdmin, isTrue);
-
-      final serialized = adminUser.toMap();
-      expect(serialized['role'], 'admin');
+  group('Model Supabase', () {
+    test('kartu search_products menjadi Costume', () {
+      final c = Costume.fromCard({
+        'product_id': 'p1',
+        'product_slug': 'demo-2b-a',
+        'store_slug': 'toko-a',
+        'store_name': 'Toko A',
+        'city_name': 'Banjarmasin',
+        'title': '2B • Pakaian hitam',
+        'character_name': '2B',
+        'franchise_name': 'NieR:Automata',
+        'sizes': ['S', 'M'],
+        'price_idr': 120000,
+        'duration_days': 3,
+        'deposit_idr': 50000,
+        'cover_path': 'demo/2b.png',
+      }, img);
+      expect(c.id, 'p1');
+      expect(c.storeId, 'toko-a');
+      expect(c.anime, 'NieR:Automata');
+      expect(c.imageUrls, ['https://cdn.uji/demo/2b.png']);
+      expect(c.sizes, ['S', 'M']);
+      expect(c.hasPrice, isTrue);
+      expect(c.rating, 0);
     });
 
-    test('Costume serialization and deserialization', () {
-      final costume = Costume(
-        id: 'c1',
-        name: 'Tanjiro Haori',
-        anime: 'Demon Slayer',
-        storeId: 's1',
-        description: 'Bahan katun adem',
-        imageUrls: ['https://example.com/tanjiro.jpg'],
-        price: 75000,
-        sizes: ['M', 'L'],
-        isAvailable: true,
-      );
-
-      final map = costume.toMap();
-      expect(map['name'], 'Tanjiro Haori');
-      expect(map['price'], 75000.0);
-      expect(map['sizes'], ['M', 'L']);
-
-      final restored = Costume.fromMap(map, 'c1');
-      expect(restored.name, costume.name);
-      expect(restored.anime, costume.anime);
-      expect(restored.sizes, ['M', 'L']);
-      expect(restored.isAvailable, isTrue);
+    test('detail memuat varian, foto berurutan, dan estimasi harga sama dengan server', () {
+      final c = Costume.fromDetail({
+        'id': 'p1',
+        'slug': 'demo',
+        'title': 'Uji',
+        'character': 'Karakter',
+        'franchise': null,
+        'description': 'Deskripsi',
+        'package_contents': ['Baju', 'Wig'],
+        'variants': [
+          {'id': 'v1', 'size': 'M', 'measurements_cm': {'chest': 92}},
+        ],
+        'images': [
+          {'path': 'a.jpg'},
+          {'path': 'b.jpg'},
+        ],
+        'price': {'amount_idr': 100000, 'duration_days': 3, 'extra_day_idr': null, 'deposit_idr': 0},
+        'store': {'slug': 'toko-a', 'name': 'Toko A', 'city': 'Banjarmasin', 'whatsapp': null},
+      }, img);
+      expect(c.anime, 'Lainnya');
+      expect(c.variants.single.measurementsCm['chest'], 92);
+      expect(c.imageUrls.last, 'https://cdn.uji/b.jpg');
+      expect(c.estimateRent(3), 100000);
+      // 2 hari tambahan × ceil(100000 / 3) = 2 × 33334
+      expect(c.estimateRent(5), 166668);
     });
 
-    test('Store serialization and deserialization', () {
-      final store = Store(
-        id: 's1',
-        name: 'Wibu Cosplay Hub',
-        ownerUid: 'u2',
-        city: 'Jakarta Selatan',
-        imageUrl: 'https://example.com/logo.jpg',
-        rating: 4.9,
-      );
-
-      final map = store.toMap();
-      expect(map['storeName'], 'Wibu Cosplay Hub');
-      expect(map['city'], 'Jakarta Selatan');
-
-      final restored = Store.fromMap(map, 's1');
-      expect(restored.name, 'Wibu Cosplay Hub');
-      expect(restored.city, 'Jakarta Selatan');
+    test('toko dari list_public_stores', () {
+      final s = Store.fromList({'slug': 'toko-a', 'name': 'Toko A', 'city': 'Banjarmasin', 'product_count': 2}, img);
+      expect(s.id, 'toko-a');
+      expect(s.productCount, 2);
+      expect(s.imageUrl, '');
     });
 
-    test('RentalTransaction status handling', () {
-      final tx = RentalTransaction(
-        id: 'tx1',
-        userId: 'u1',
-        costumeId: 'c1',
-        startDate: DateTime(2026, 10, 1),
-        endDate: DateTime(2026, 10, 3),
-        totalPrice: 150000,
-        status: RentalStatus.pending,
-        size: 'L',
-      );
+    test('permintaan: tanggal akhir inklusif dan status', () {
+      final r = RentalRequest.fromJson({
+        'id': 'r1',
+        'request_code': 'MAR-ABCDEF',
+        'status': 'responded',
+        'revision': 2,
+        'product_id': 'p1',
+        'product_title': 'Uji',
+        'store_slug': 'toko-a',
+        'store_name': 'Toko A',
+        'rent_start': '2026-12-10',
+        'rent_end_exclusive': '2026-12-13',
+        'created_at': '2026-11-24T03:00:00Z',
+        'order': {'total_rent_idr': 120000, 'deposit_idr': 50000},
+      }, img);
+      expect(r.days, 3);
+      expect(r.rentEnd, DateTime(2026, 12, 12));
+      expect(r.status.isOpen, isTrue);
+      expect(r.status.label, 'Dibalas toko');
+      expect(r.totalRentIdr, 120000);
+    });
 
-      final map = tx.toMap();
-      expect(map['status'], 'pending');
-      expect(map['size'], 'L');
+    test('ketersediaan menjadi daftar tanggal terisi untuk kalender', () {
+      final a = ProductAvailability.fromJson({
+        'calendar_active': true,
+        'variants': [
+          {
+            'variant_id': 'v1',
+            'size': 'M',
+            'units': 1,
+            'busy': [
+              {'start': '2026-12-01', 'end_exclusive': '2026-12-04'},
+            ],
+            'status': 'booked',
+          },
+        ],
+      });
+      expect(a.forVariant('v1')!.bookedDateKeys, ['2026-12-01', '2026-12-02', '2026-12-03']);
+      expect(a.forVariant('v1')!.status, 'booked');
+      expect(a.forVariant('tidak-ada'), isNull);
+    });
 
-      final restored = RentalTransaction.fromMap(map, 'tx1');
-      expect(restored.status, RentalStatus.pending);
-      expect(restored.size, 'L');
+    test('nomor HP dinormalisasi ke format +62', () {
+      expect(AuthService.normalizePhone('0812-3456-7890'), '+6281234567890');
+      expect(AuthService.normalizePhone('62 812 3456 7890'), '+6281234567890');
+      expect(AuthService.normalizePhone(''), isNull);
+      expect(() => AuthService.normalizePhone('12'), throwsA(isA<ApiException>()));
+    });
+
+    test('inisial pengguna dan operation id', () {
+      expect(AppUser(id: 'u', email: 'a@b.c', name: 'Rina Putri').initials, 'RP');
+      final id = newOperationId();
+      expect(RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$').hasMatch(id), isTrue);
+      expect(dateKey(DateTime(2026, 1, 5)), '2026-01-05');
     });
   });
 }

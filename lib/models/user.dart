@@ -1,44 +1,35 @@
+/// Pengguna yang sedang login. Email dari Supabase Auth; nama & nomor dari tabel `profiles`.
+/// Peran (owner/staf toko, admin) tidak disimpan di sini: hak akses selalu diperiksa server.
 class AppUser {
-  final String id;
-  final String email;
-  final String name;
-  final String role;
-  final String? profileImageUrl;
-  final String? phoneNumber;
-  final String? address;
-
   AppUser({
     required this.id,
     required this.email,
     required this.name,
-    this.role = 'user',
-    this.profileImageUrl,
     this.phoneNumber,
-    this.address,
+    this.profileImageUrl,
   });
 
-  bool get isAdmin => role.toLowerCase() == 'admin';
+  final String id;
+  final String email;
+  final String name;
 
-  factory AppUser.fromMap(Map<String, dynamic> map, String id) {
-    return AppUser(
-      id: id,
-      email: map['email'] ?? '',
-      name: map['name'] ?? '',
-      role: (map['role'] ?? 'user').toString(),
-      profileImageUrl: map['profileImageUrl'],
-      phoneNumber: map['phoneNumber'],
-      address: map['address'],
-    );
-  }
+  /// Format internasional (+62…), sesuai kolom `profiles.phone`.
+  final String? phoneNumber;
 
-  Map<String, dynamic> toMap() {
-    return {
-      'email': email,
-      'name': name,
-      'role': role,
-      'profileImageUrl': profileImageUrl,
-      'phoneNumber': phoneNumber,
-      'address': address,
-    };
+  /// Foto profil belum didukung backend baru (selalu null).
+  final String? profileImageUrl;
+
+  AppUser copyWith({String? name, String? phoneNumber}) => AppUser(
+        id: id,
+        email: email,
+        name: name ?? this.name,
+        phoneNumber: phoneNumber ?? this.phoneNumber,
+        profileImageUrl: profileImageUrl,
+      );
+
+  String get initials {
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return email.isNotEmpty ? email[0].toUpperCase() : '?';
+    return parts.take(2).map((p) => p[0].toUpperCase()).join();
   }
 }
