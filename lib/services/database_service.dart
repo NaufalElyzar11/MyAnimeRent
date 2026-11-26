@@ -29,6 +29,7 @@ class DatabaseService {
     String? size,
     String? storeSlug,
     bool includeShipping = true,
+    int? maxPriceIdr,
     int limit = 24,
     int offset = 0,
   }) async {
@@ -37,6 +38,7 @@ class DatabaseService {
       'p_city_code': cityCode,
       'p_include_shipping': includeShipping,
       'p_size': size,
+      'p_max_price_idr': maxPriceIdr,
       'p_store_slug': storeSlug,
       'p_limit': limit,
       'p_offset': offset,
@@ -64,6 +66,18 @@ class DatabaseService {
     if (ids.isEmpty) return const [];
     final data = await Backend.rpc('get_public_products_by_ids', {'p_ids': ids});
     return _rows(data).map((m) => Costume.fromCard(m, _img)).toList();
+  }
+
+  /// Kota (kode wilayah) untuk filter pencarian.
+  Future<List<({String code, String name})>> listCities() async {
+    try {
+      final rows = await Backend.client.from('cities').select('code, name').order('name').timeout(Backend.rpcTimeout);
+      return [for (final r in rows) (code: r['code'].toString(), name: (r['name'] ?? '').toString())];
+    } on PostgrestException catch (e) {
+      throw Backend.fromPostgrest(e);
+    } catch (_) {
+      throw ApiException('TEMPORARILY_UNAVAILABLE', 'Daftar kota belum bisa dimuat.');
+    }
   }
 
   Future<List<Store>> getStores({String? cityCode}) async {

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../models/app_notification.dart';
 import '../providers/notification_provider.dart';
+import '../widgets/ui_kit.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -45,13 +46,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: items.isEmpty
             ? ListView(
                 children: [
-                  const SizedBox(height: 120),
-                  Icon(Icons.notifications_none, size: 64, color: theme.colorScheme.primary),
-                  const SizedBox(height: 12),
-                  Text(
-                    provider.isLoading ? 'Memuat…' : 'Belum ada notifikasi',
-                    textAlign: TextAlign.center,
-                  ),
+                  const SizedBox(height: 60),
+                  provider.isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : const EmptyState(
+                          icon: Icons.notifications_none_rounded,
+                          title: 'Belum ada notifikasi',
+                          message: 'Kabar dari toko tentang permintaan sewamu akan muncul di sini.',
+                        ),
                 ],
               )
             : ListView.separated(
@@ -60,7 +62,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 itemBuilder: (context, i) {
                   final n = items[i];
                   return ListTile(
-                    leading: Icon(_icon(n), color: n.isRead ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.primary),
+                    tileColor: n.isRead ? null : theme.colorScheme.primary.withValues(alpha: 0.05),
+                    leading: CircleAvatar(
+                      backgroundColor: (n.isRead ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.primary)
+                          .withValues(alpha: 0.12),
+                      child: Icon(_icon(n),
+                          size: 20, color: n.isRead ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.primary),
+                    ),
                     title: Text(n.title, style: TextStyle(fontWeight: n.isRead ? FontWeight.normal : FontWeight.bold)),
                     subtitle: Text(
                       [if (n.body != null && n.body!.isNotEmpty) n.body!, DateFormat('d MMM HH:mm', 'id_ID').format(n.createdAt.toLocal())]

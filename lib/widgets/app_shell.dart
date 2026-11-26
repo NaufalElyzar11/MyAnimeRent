@@ -73,7 +73,7 @@ class AppShell extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.favorite_outline),
             selectedIcon: Icon(Icons.favorite),
-            label: navigationShell == null ? 'Wishlist' : 'Favorit',
+            label: 'Favorit',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

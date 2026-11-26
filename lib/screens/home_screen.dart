@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -9,6 +10,11 @@ import '../config/theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/costume_provider.dart';
 import '../providers/notification_provider.dart';
+import '../providers/rental_provider.dart';
+import '../models/rental_request.dart';
+import '../models/store.dart';
+import '../widgets/ui_kit.dart';
+import 'rental_history_screen.dart' show StatusChip;
 import '../models/costume.dart';
 import '../widgets/costume_card.dart';
 import '../widgets/store_card.dart';
@@ -40,238 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (widget.catalogSnapshot != null) {
       return _publicCatalog(context, widget.catalogSnapshot!);
     }
-    final provider = context.watch<CostumeProvider>();
-    final theme = Theme.of(context);
-
-    // Only show full-screen spinner if we have no costumes yet
-    if (provider.isLoading && provider.costumes.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (provider.error != null && provider.costumes.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Katalog belum bisa dimuat. Periksa koneksi internet.'),
-            if (kDebugMode) ...[
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  'Server: ${SupabaseConfig.url}\n'
-                  'HP fisik tidak bisa memakai 10.0.2.2 (khusus emulator). '
-                  'Lihat README bagian Konfigurasi.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () =>
-                  context.read<CostumeProvider>().loadData(force: true),
-              child: const Text('Coba lagi'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final costumesByAnime = provider.costumesByAnime;
-    final allImages = provider.costumes.expand((c) => c.imageUrls).toList();
-    final bannerImages = allImages.take(4).toList();
-
-    return RefreshIndicator(
-      onRefresh: () => context.read<CostumeProvider>().loadData(force: true),
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Brand Header with Logo
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Image.asset(
-                    'assets/images/logo.png',
-                    height: 44,
-                    fit: BoxFit.contain,
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.pink.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.search, color: AppColors.purple),
-                          onPressed: () => context.go('/search'),
-                          tooltip: 'Cari kostum',
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const _InboxButton(),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Image Slider / Banner 1:1 Square (kept 1:1 with dot indicator)
-            if (bannerImages.isNotEmpty) ...[
-              AspectRatio(
-                aspectRatio: 1.0,
-                child: PageView.builder(
-                  itemCount: bannerImages.length,
-                  onPageChanged: (i) => setState(() => _currentBannerPage = i),
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: CachedNetworkImage(
-                          imageUrl: bannerImages[index],
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          placeholder: (_, _) => Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                          errorWidget: (_, _, _) => Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Icon(Icons.broken_image, size: 48),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(bannerImages.length, (i) {
-                  final isSelected = _currentBannerPage == i;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: isSelected ? 18 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  );
-                }),
-              ),
-            ],
-
-            const SizedBox(height: 24),
-
-            // Top Cosrent (Stores)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Toko rental', style: theme.textTheme.titleLarge),
-                GestureDetector(
-                  onTap: () => context.push('/stores'),
-                  child: Text(
-                    'Lihat semua',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 140,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: provider.stores.take(6).length,
-                itemBuilder: (context, index) {
-                  final store = provider.stores[index];
-                  return GestureDetector(
-                    onTap: () => context.push('/store_detail/${store.id}'),
-                    child: Card(
-                      margin: const EdgeInsets.only(right: 8),
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Container(
-                        width: 120,
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: CachedNetworkImage(
-                                imageUrl: store.imageUrl,
-                                width: 64,
-                                height: 64,
-                                fit: BoxFit.cover,
-                                errorWidget: (_, _, _) =>
-                                    const Icon(Icons.store, size: 40),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              store.name.isNotEmpty ? store.name : store.city,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            if (provider.costumes.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Text('Belum ada kostum yang tayang.'),
-              ),
-
-            // Costumes grouped by anime
-            for (final entry
-                in (costumesByAnime.entries.toList()
-                  ..sort((a, b) => a.key.compareTo(b.key))))
-              _CostumeSection(
-                title: entry.value.first.anime,
-                costumes: entry.value,
-                onSeeMore: () => context.push(
-                  '/see_more/${Uri.encodeComponent(entry.value.first.anime)}',
-                ),
-                onCostumeClick: (id) => context.push('/detail/$id'),
-              ),
-          ],
-        ),
-      ),
-    );
+    return const _MainHome();
   }
 
   /// Same brand header, square carousel, store strip and series sections as the
@@ -526,22 +301,397 @@ class _InboxButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final loggedIn = context.watch<AuthProvider>().isLoggedIn;
     if (!loggedIn) {
-      return TextButton(onPressed: () => context.push('/login'), child: const Text('Masuk'));
+      return OutlinedButton(onPressed: () => context.push('/login'), child: const Text('Masuk'));
     }
     final unread = context.watch<NotificationProvider>().unreadCount;
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.pink.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+    return IconButton.filledTonal(
+      tooltip: 'Notifikasi',
+      onPressed: () => context.push('/notifications'),
+      icon: Badge(
+        isLabelVisible: unread > 0,
+        label: Text(unread > 9 ? '9+' : '$unread'),
+        child: const Icon(Icons.notifications_none_rounded),
       ),
-      child: IconButton(
-        tooltip: 'Notifikasi',
-        onPressed: () => context.push('/notifications'),
-        icon: Badge(
-          isLabelVisible: unread > 0,
-          label: Text(unread > 9 ? '9+' : '$unread'),
-          child: const Icon(Icons.notifications_none, color: AppColors.purple),
+    );
+  }
+}
+
+// ─── Beranda aplikasi utama (Supabase) ─────────────────────────────────────
+
+class _MainHome extends StatelessWidget {
+  const _MainHome();
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<CostumeProvider>();
+    final theme = Theme.of(context);
+    final loading = provider.isLoading && provider.costumes.isEmpty;
+
+    if (provider.error != null && provider.costumes.isEmpty && !provider.isLoading) {
+      return Center(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              EmptyState(
+                icon: Icons.wifi_off_rounded,
+                title: 'Katalog belum bisa dimuat',
+                message: 'Periksa koneksi internet lalu coba lagi.',
+                actionLabel: 'Coba lagi',
+                onAction: () => context.read<CostumeProvider>().loadData(force: true),
+              ),
+              if (kDebugMode)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    'Server: ${SupabaseConfig.url}\n'
+                    'HP fisik tidak bisa memakai 10.0.2.2 (khusus emulator). '
+                    'Lihat README bagian Konfigurasi.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+            ],
+          ),
         ),
+      );
+    }
+
+    final series = provider.costumesByAnime.entries.toList()
+      ..sort((a, b) {
+        final byCount = b.value.length.compareTo(a.value.length);
+        return byCount != 0 ? byCount : a.key.compareTo(b.key);
+      });
+
+    return RefreshIndicator(
+      onRefresh: () => context.read<CostumeProvider>().loadData(force: true),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
+        children: [
+          const _HomeHeader(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.page, 4, AppSpacing.page, 0),
+            child: SearchBarButton(onTap: () => context.go('/search')),
+          ),
+          if (series.isNotEmpty)
+            SizedBox(
+              height: 52,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(AppSpacing.page, 10, AppSpacing.page, 0),
+                children: [
+                  for (final e in series.take(10))
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ActionChip(
+                        label: Text(e.value.first.anime),
+                        onPressed: () => context.push('/see_more/${Uri.encodeComponent(e.value.first.anime)}'),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 16),
+          const _ActiveRequestCard(),
+          const _HowItWorks(),
+          if (loading)
+            const Padding(
+              padding: EdgeInsets.all(AppSpacing.page),
+              child: CostumeGridSkeleton(),
+            )
+          else ...[
+            if (provider.stores.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+                child: SectionHeader(
+                  title: 'Toko rental',
+                  subtitle: 'Cosrent yang sudah terdaftar',
+                  actionLabel: 'Lihat semua',
+                  onAction: () => context.push('/stores'),
+                ),
+              ),
+              _StoreStrip(stores: provider.stores.take(8).toList()),
+              const SizedBox(height: AppSpacing.section - 8),
+            ],
+            if (provider.costumes.isEmpty)
+              const EmptyState(
+                icon: Icons.checkroom_outlined,
+                title: 'Belum ada kostum yang tayang',
+                message: 'Tarik layar ke bawah untuk memuat ulang.',
+              ),
+            for (final e in series)
+              _CostumeRow(
+                title: e.value.first.anime,
+                costumes: e.value,
+                onSeeMore: () => context.push('/see_more/${Uri.encodeComponent(e.value.first.anime)}'),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final auth = context.watch<AuthProvider>();
+    final name = auth.user?.name.trim().split(RegExp(r'\s+')).first;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.page, 0, 8, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Image.asset('assets/images/logo.png', height: 30, fit: BoxFit.contain, alignment: Alignment.centerLeft),
+                const SizedBox(height: 10),
+                Text(
+                  name == null || name.isEmpty ? 'Mau cosplay jadi siapa?' : 'Hai, $name!',
+                  style: theme.textTheme.titleLarge,
+                ),
+                Text(
+                  'Cek tanggal kosong, ajukan sewa, beres di satu app.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+          const _InboxButton(),
+        ],
+      ),
+    );
+  }
+}
+
+/// Permintaan yang sedang berjalan, agar penyewa tidak perlu mencari statusnya.
+class _ActiveRequestCard extends StatelessWidget {
+  const _ActiveRequestCard();
+
+  @override
+  Widget build(BuildContext context) {
+    if (!context.watch<AuthProvider>().isLoggedIn) return const SizedBox.shrink();
+    final requests = context.watch<RentalProvider>().requests;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final active = requests
+        .where((r) => r.status.isOpen || (r.status == RequestStatus.accepted && r.rentEndExclusive.isAfter(today)))
+        .toList();
+    if (active.isEmpty) return const SizedBox.shrink();
+    final r = active.first;
+    final theme = Theme.of(context);
+    final fmt = DateFormat('d MMM', 'id_ID');
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.page, 0, AppSpacing.page, AppSpacing.section - 8),
+      child: Card(
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => context.push(active.length == 1 ? '/requests/${r.id}' : '/requests'),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    width: 52,
+                    height: 52,
+                    child: r.coverUrl.isEmpty
+                        ? Container(color: theme.colorScheme.surfaceContainerHighest, child: const Icon(Icons.checkroom))
+                        : CachedNetworkImage(imageUrl: r.coverUrl, fit: BoxFit.cover),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        active.length == 1 ? 'Permintaan aktif' : '${active.length} permintaan aktif',
+                        style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      Text(r.productTitle,
+                          maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
+                      Text('${fmt.format(r.rentStart)} – ${fmt.format(r.rentEnd)} · ${r.storeName}',
+                          maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                StatusChip(status: r.status),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Penjelasan singkat alur sewa untuk pengguna yang belum pernah mengajukan.
+class _HowItWorks extends StatelessWidget {
+  const _HowItWorks();
+
+  @override
+  Widget build(BuildContext context) {
+    final loggedIn = context.watch<AuthProvider>().isLoggedIn;
+    if (loggedIn && context.watch<RentalProvider>().requests.isNotEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    Widget step(IconData icon, String title, String text) => Expanded(
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.white.withValues(alpha: 0.85),
+                child: Icon(icon, size: 20, color: AppColors.pinkDeep),
+              ),
+              const SizedBox(height: 6),
+              Text(title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelLarge?.copyWith(color: AppColors.darkGrey, fontWeight: FontWeight.w700)),
+              Text(text,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelSmall?.copyWith(color: AppColors.darkGrey.withValues(alpha: 0.75))),
+            ],
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.page, 0, AppSpacing.page, AppSpacing.section - 8),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+        decoration: BoxDecoration(gradient: AppColors.softGradient, borderRadius: BorderRadius.circular(AppSpacing.radius)),
+        child: Column(
+          children: [
+            Text('Sewa tanpa chat bolak-balik',
+                style: theme.textTheme.titleSmall?.copyWith(color: AppColors.darkGrey, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                step(Icons.event_available_outlined, 'Cek tanggal', 'Lihat yang sudah dipesan'),
+                step(Icons.send_outlined, 'Ajukan', 'Pilih ukuran & tanggal'),
+                step(Icons.verified_outlined, 'Dikonfirmasi', 'Toko mengunci jadwalmu'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StoreStrip extends StatelessWidget {
+  const _StoreStrip({required this.stores});
+  final List<Store> stores;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scale = MediaQuery.textScalerOf(context).scale(14).clamp(14.0, 22.0) / 14;
+    return SizedBox(
+      height: 72 * scale + 8,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+        itemCount: stores.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, i) {
+          final store = stores[i];
+          return SizedBox(
+            width: 220,
+            child: Card(
+              margin: const EdgeInsets.only(bottom: 4),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => context.push('/store_detail/${store.id}'),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      StoreAvatar(name: store.name, imageUrl: store.imageUrl, size: 46),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(store.name,
+                                maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
+                            Text(
+                              [
+                                store.city,
+                                if (store.productCount > 0) '${store.productCount} kostum',
+                              ].where((x) => x.isNotEmpty).join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Satu baris kostum per seri (geser ke samping).
+class _CostumeRow extends StatelessWidget {
+  const _CostumeRow({required this.title, required this.costumes, required this.onSeeMore});
+  final String title;
+  final List<Costume> costumes;
+  final VoidCallback onSeeMore;
+
+  static const _cardWidth = 158.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final height = _cardWidth + costumeCardTextHeight(context) + 4;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.section - 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+            child: SectionHeader(
+              title: title,
+              subtitle: '${costumes.length} kostum',
+              actionLabel: costumes.length > 2 ? 'Lihat semua' : null,
+              onAction: onSeeMore,
+            ),
+          ),
+          SizedBox(
+            height: height,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.page),
+              itemCount: costumes.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (context, i) => SizedBox(
+                width: _cardWidth,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: CostumeCard(
+                    costume: costumes[i],
+                    onTap: () => context.push('/detail/${costumes[i].id}'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

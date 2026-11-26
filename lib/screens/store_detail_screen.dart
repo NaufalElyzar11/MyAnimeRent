@@ -5,7 +5,8 @@ import 'package:provider/provider.dart';
 import '../models/costume.dart';
 import '../models/store.dart';
 import '../providers/costume_provider.dart';
-import '../widgets/costume_card.dart';
+import '../config/theme.dart';
+import '../widgets/ui_kit.dart';
 
 /// Profil toko publik + katalognya. [storeId] = slug toko.
 class StoreDetailScreen extends StatefulWidget {
@@ -58,6 +59,7 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final store = _store;
+    final muted = theme.colorScheme.onSurfaceVariant;
     return Scaffold(
       appBar: AppBar(
         title: Text(store?.name ?? 'Profil toko'),
@@ -68,79 +70,121 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? ListView(
+              padding: const EdgeInsets.all(AppSpacing.page),
+              children: const [
+                SkeletonBox(height: 120, radius: 20),
+                SizedBox(height: 20),
+                CostumeGridSkeleton(),
+              ],
+            )
           : store == null
               ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_error ?? 'Toko tidak ditemukan atau belum tayang.', textAlign: TextAlign.center),
-                        if (_error != null) ...[
-                          const SizedBox(height: 12),
-                          OutlinedButton(onPressed: _load, child: const Text('Coba lagi')),
-                        ],
-                      ],
-                    ),
+                  child: EmptyState(
+                    icon: _error != null ? Icons.wifi_off_rounded : Icons.storefront_outlined,
+                    title: _error != null ? 'Toko belum bisa dimuat' : 'Toko tidak ditemukan',
+                    message: _error != null ? 'Periksa koneksi lalu coba lagi.' : 'Toko ini belum tayang atau sudah tutup.',
+                    actionLabel: _error != null ? 'Coba lagi' : null,
+                    onAction: _error != null ? _load : null,
                   ),
                 )
               : RefreshIndicator(
                   onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.storefront, size: 48, color: theme.colorScheme.primary),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(store.name, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                                Text(store.city, style: theme.textTheme.bodyMedium),
-                                if (store.shipsIntercity)
-                                  Text('Bisa kirim antarkota', style: theme.textTheme.bodySmall),
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.page, 8, AppSpacing.page, 0),
+                        sliver: SliverToBoxAdapter(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.softGradient,
+                                  borderRadius: BorderRadius.circular(AppSpacing.radius),
+                                ),
+                                child: Row(
+                                  children: [
+                                    StoreAvatar(name: store.name, imageUrl: store.imageUrl, size: 60),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(store.name,
+                                              style: theme.textTheme.titleLarge?.copyWith(color: AppColors.darkGrey)),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            [store.city, '${_costumes.length} kostum'].where((x) => x.isNotEmpty).join(' · '),
+                                            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.darkGrey),
+                                          ),
+                                          if (store.shipsIntercity || store.verifiedAt != null) ...[
+                                            const SizedBox(height: 6),
+                                            Wrap(
+                                              spacing: 6,
+                                              runSpacing: 4,
+                                              children: [
+                                                if (store.verifiedAt != null)
+                                                  const _Badge(icon: Icons.verified_rounded, text: 'Terverifikasi'),
+                                                if (store.shipsIntercity)
+                                                  const _Badge(icon: Icons.local_shipping_outlined, text: 'Kirim antarkota'),
+                                              ],
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (store.description != null && store.description!.isNotEmpty) ...[
+                                const SizedBox(height: 16),
+                                Text(store.description!, style: theme.textTheme.bodyMedium?.copyWith(height: 1.5)),
                               ],
-                            ),
+                              if ((store.policies ?? '').isNotEmpty || (store.shippingNotes ?? '').isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                Card(
+                                  margin: EdgeInsets.zero,
+                                  child: Theme(
+                                    data: theme.copyWith(dividerColor: Colors.transparent),
+                                    child: ExpansionTile(
+                                      leading: const Icon(Icons.rule_rounded),
+                                      title: const Text('Aturan sewa & pengiriman'),
+                                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        if ((store.policies ?? '').isNotEmpty)
+                                          Text(store.policies!, style: theme.textTheme.bodyMedium?.copyWith(height: 1.5)),
+                                        if ((store.shippingNotes ?? '').isNotEmpty) ...[
+                                          const SizedBox(height: 8),
+                                          Text('Pengiriman: ${store.shippingNotes!}',
+                                              style: theme.textTheme.bodySmall?.copyWith(color: muted)),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: AppSpacing.section),
+                              SectionHeader(title: 'Kostum', subtitle: '${_costumes.length} tersedia di toko ini'),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                      if (store.description != null && store.description!.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(store.description!),
-                      ],
-                      if (store.policies != null && store.policies!.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text('Kebijakan toko', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text(store.policies!),
-                      ],
-                      if (store.shippingNotes != null && store.shippingNotes!.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Text('Pengiriman: ${store.shippingNotes!}', style: theme.textTheme.bodySmall),
-                      ],
-                      const SizedBox(height: 20),
-                      Text('Kostum (${_costumes.length})',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
                       if (_costumes.isEmpty)
-                        const Text('Toko ini belum punya kostum yang tayang.')
+                        const SliverToBoxAdapter(
+                          child: EmptyState(icon: Icons.checkroom_outlined, title: 'Belum ada kostum yang tayang'),
+                        )
                       else
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 200,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.6,
-                          ),
-                          itemCount: _costumes.length,
-                          itemBuilder: (context, i) => CostumeCard(
-                            costume: _costumes[i],
-                            onTap: () => context.push('/detail/${_costumes[i].id}'),
+                        SliverToBoxAdapter(
+                          child: CostumeGridView(
+                            costumes: _costumes,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(AppSpacing.page, 0, AppSpacing.page, 24),
+                            onTap: (c) => context.push('/detail/${c.id}'),
                           ),
                         ),
                     ],
@@ -148,4 +192,25 @@ class _StoreDetailScreenState extends State<StoreDetailScreen> {
                 ),
     );
   }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(20)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: AppColors.purple),
+            const SizedBox(width: 4),
+            Text(text,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.darkGrey, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      );
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../providers/costume_provider.dart';
-import '../widgets/costume_card.dart';
 
+import '../providers/costume_provider.dart';
+import '../widgets/ui_kit.dart';
+
+/// Semua kostum dari satu seri anime/game.
 class SeeMoreScreen extends StatelessWidget {
   final String anime;
   const SeeMoreScreen({super.key, required this.anime});
@@ -16,29 +18,31 @@ class SeeMoreScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(decodedAnime),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(decodedAnime, maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text('${costumes.length} kostum', style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
         leading: IconButton(
+          tooltip: 'Kembali',
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
         ),
       ),
       body: costumes.isEmpty
-          ? const Center(child: Text('Belum ada kostum di seri ini.'))
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 200,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.65,
+          ? Center(
+              child: EmptyState(
+                icon: Icons.checkroom_outlined,
+                title: 'Belum ada kostum di seri ini',
+                actionLabel: 'Cari kostum lain',
+                onAction: () => context.go('/search'),
               ),
-              itemCount: costumes.length,
-              itemBuilder: (context, index) {
-                return CostumeCard(
-                  costume: costumes[index],
-                  onTap: () => context.push('/detail/${costumes[index].id}'),
-                );
-              },
+            )
+          : CostumeGridView(
+              costumes: costumes,
+              onTap: (c) => context.push('/detail/${c.id}'),
             ),
     );
   }

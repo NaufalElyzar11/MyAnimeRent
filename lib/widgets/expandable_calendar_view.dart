@@ -13,6 +13,9 @@ class ExpandableCalendarView extends StatefulWidget {
   /// Lama sewa yang dipilih saat satu tanggal diketuk (biasanya durasi paket toko).
   final int rangeDays;
 
+  /// Tampilan awal. Sebulan penuh agar tanggal yang sudah dipesan langsung terlihat.
+  final CalendarDisplayMode initialMode;
+
   const ExpandableCalendarView({
     super.key,
     required this.bookedDates,
@@ -21,6 +24,7 @@ class ExpandableCalendarView extends StatefulWidget {
     this.onDateRangeSelected,
     this.onSelectionInvalid,
     this.rangeDays = 3,
+    this.initialMode = CalendarDisplayMode.month,
   });
 
   @override
@@ -28,7 +32,7 @@ class ExpandableCalendarView extends StatefulWidget {
 }
 
 class _ExpandableCalendarViewState extends State<ExpandableCalendarView> {
-  CalendarDisplayMode _displayMode = CalendarDisplayMode.week;
+  late CalendarDisplayMode _displayMode = widget.initialMode;
   late DateTime _visibleDate;
 
   @override

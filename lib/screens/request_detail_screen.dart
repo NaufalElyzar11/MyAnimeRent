@@ -284,9 +284,9 @@ class _Summary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            StatusChip(status: r.status),
-            const SizedBox(height: 8),
-            Text(statusText),
+            _Progress(status: r.status),
+            const SizedBox(height: 12),
+            Text(statusText, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
             const Divider(height: 20),
             InkWell(
               onTap: () => context.push('/detail/${r.productId}'),
@@ -307,6 +307,57 @@ class _Summary extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Langkah permintaan: terkirim → dibalas toko → dikonfirmasi (atau ditutup).
+class _Progress extends StatelessWidget {
+  const _Progress({required this.status});
+  final RequestStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final closed = !status.isOpen && status != RequestStatus.accepted;
+    if (closed) return StatusChip(status: status);
+    final step = switch (status) {
+      RequestStatus.submitted => 0,
+      RequestStatus.responded => 1,
+      _ => 2,
+    };
+    const labels = ['Terkirim', 'Dibalas toko', 'Dikonfirmasi'];
+    final done = theme.colorScheme.primary;
+    final todo = theme.colorScheme.outlineVariant;
+    return Row(
+      children: [
+        for (var i = 0; i < labels.length; i++) ...[
+          Column(
+            children: [
+              CircleAvatar(
+                radius: 13,
+                backgroundColor: i <= step ? done : todo,
+                child: Icon(i < step || step == 2 ? Icons.check : Icons.circle, size: i < step || step == 2 ? 16 : 8,
+                    color: i <= step ? theme.colorScheme.onPrimary : theme.colorScheme.surface),
+              ),
+              const SizedBox(height: 4),
+              Text(labels[i],
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: i == step ? FontWeight.w700 : FontWeight.w500,
+                    color: i <= step ? null : theme.colorScheme.onSurfaceVariant,
+                  )),
+            ],
+          ),
+          if (i < labels.length - 1)
+            Expanded(
+              child: Container(
+                height: 2,
+                margin: const EdgeInsets.only(bottom: 18, left: 4, right: 4),
+                color: i < step ? done : todo,
+              ),
+            ),
+        ],
+      ],
     );
   }
 }

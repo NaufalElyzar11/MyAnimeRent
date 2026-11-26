@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/rental_request.dart';
+import '../config/theme.dart';
 import '../providers/rental_provider.dart';
+import '../widgets/ui_kit.dart';
 
 /// "Permintaan Sewa": semua permintaan milik penyewa beserta statusnya.
 class RentalHistoryScreen extends StatefulWidget {
@@ -25,43 +27,49 @@ class _RentalHistoryScreenState extends State<RentalHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<RentalProvider>();
-    final theme = Theme.of(context);
     final items = provider.requests;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    bool isActive(RentalRequest r) =>
+        r.status.isOpen || (r.status == RequestStatus.accepted && r.rentEndExclusive.isAfter(today));
+    final active = items.where(isActive).toList();
+    final history = items.where((r) => !isActive(r)).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Permintaan Sewa')),
       body: RefreshIndicator(
         onRefresh: () => context.read<RentalProvider>().loadRequests(),
         child: provider.isLoading && items.isEmpty
-            ? const Center(child: CircularProgressIndicator())
+            ? ListView(
+                padding: const EdgeInsets.all(AppSpacing.page),
+                children: [for (var i = 0; i < 4; i++) const Padding(padding: EdgeInsets.only(bottom: 12), child: SkeletonBox(height: 90))],
+              )
             : items.isEmpty
                 ? ListView(
-                    padding: const EdgeInsets.all(32),
                     children: [
-                      const SizedBox(height: 60),
-                      Icon(Icons.receipt_long_outlined, size: 64, color: theme.colorScheme.primary),
-                      const SizedBox(height: 16),
-                      Text(
-                        provider.message ?? 'Belum ada permintaan sewa',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Pilih kostum, tentukan tanggal, lalu tekan "Ajukan sewa". Kabar dari toko muncul di sini.',
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      Center(
-                        child: ElevatedButton(onPressed: () => context.go('/home'), child: const Text('Cari kostum')),
+                      const SizedBox(height: 40),
+                      EmptyState(
+                        icon: Icons.receipt_long_outlined,
+                        title: provider.message ?? 'Belum ada permintaan sewa',
+                        message: 'Pilih kostum, tentukan tanggal, lalu tekan "Ajukan sewa". Kabar dari toko muncul di sini.',
+                        actionLabel: 'Cari kostum',
+                        onAction: () => context.go('/home'),
                       ),
                     ],
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) => RequestTile(request: items[i]),
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.page, 4, AppSpacing.page, 24),
+                    children: [
+                      if (active.isNotEmpty) ...[
+                        SectionHeader(title: 'Sedang berjalan', subtitle: '${active.length} permintaan'),
+                        for (final r in active) Padding(padding: const EdgeInsets.only(bottom: 10), child: RequestTile(request: r)),
+                        const SizedBox(height: 14),
+                      ],
+                      if (history.isNotEmpty) ...[
+                        const SectionHeader(title: 'Riwayat'),
+                        for (final r in history) Padding(padding: const EdgeInsets.only(bottom: 10), child: RequestTile(request: r)),
+                      ],
+                    ],
                   ),
       ),
     );
@@ -78,6 +86,7 @@ class RequestTile extends StatelessWidget {
     final r = request;
     final fmt = DateFormat('d MMM', 'id_ID');
     return Card(
+      margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push('/requests/${r.id}'),

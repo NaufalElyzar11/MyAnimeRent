@@ -40,14 +40,20 @@ class CostumeCard extends StatelessWidget {
       );
     }
     final costume = this.costume!;
-    final formatter = NumberFormat('#,###', 'id_ID');
     final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final place = [
+      if (costume.storeName.isNotEmpty) costume.storeName,
+      if (costume.city.isNotEmpty) costume.city,
+    ].join(' · ');
 
     return Card(
+      margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AspectRatio(
@@ -55,95 +61,43 @@ class CostumeCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  costume.imageUrls.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: costume.imageUrls.first,
-                          fit: BoxFit.cover,
-                          placeholder: (_, _) => Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                          errorWidget: (_, _, _) => Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Icon(
-                              Icons.image_not_supported,
-                              size: 40,
-                            ),
-                          ),
-                        )
-                      : Container(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          child: const Icon(
-                            Icons.image_not_supported,
-                            size: 40,
-                          ),
-                        ),
-                  // Rating Badge (Top Left)
-                  if (costume.rating > 0)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              color: AppColors.yellow,
-                              size: 12,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              costume.rating.toStringAsFixed(1),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  // Wishlist Toggle Button (Top Right)
+                  if (costume.imageUrls.isNotEmpty)
+                    CachedNetworkImage(
+                      imageUrl: costume.imageUrls.first,
+                      fit: BoxFit.cover,
+                      fadeInDuration: const Duration(milliseconds: 200),
+                      placeholder: (_, _) => Container(color: theme.colorScheme.surfaceContainerHighest),
+                      errorWidget: (_, _, _) => _NoPhoto(color: muted),
+                    )
+                  else
+                    _NoPhoto(color: muted),
                   Positioned(
                     top: 6,
                     right: 6,
                     child: Consumer<WishlistProvider>(
                       builder: (context, wishlistProvider, _) {
-                        final isWishlisted = wishlistProvider.isItemInWishlist(
-                          costume.id,
-                        );
-                        return GestureDetector(
-                          onTap: () async {
-                            final result = await wishlistProvider.toggleWishlist(costume.id);
-                            if (result == null && context.mounted) {
-                              // Tamu: wishlist tersimpan di akun, jadi minta masuk dulu.
-                              context.push('/login?from=${Uri.encodeComponent('/detail/${costume.id}')}');
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.45),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              isWishlisted
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: isWishlisted ? Colors.red : Colors.white,
-                              size: 16,
+                        final saved = wishlistProvider.isItemInWishlist(costume.id);
+                        return Material(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          shape: const CircleBorder(),
+                          elevation: 1,
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () async {
+                              final result = await wishlistProvider.toggleWishlist(costume.id);
+                              if (result == null && context.mounted) {
+                                // Tamu: favorit tersimpan di akun, jadi minta masuk dulu.
+                                context.push('/login?from=${Uri.encodeComponent('/detail/${costume.id}')}');
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(7),
+                              child: Icon(
+                                saved ? Icons.favorite : Icons.favorite_border,
+                                semanticLabel: saved ? 'Hapus dari favorit' : 'Simpan ke favorit',
+                                color: saved ? AppColors.pink : Colors.black87,
+                                size: 18,
+                              ),
                             ),
                           ),
                         );
@@ -154,38 +108,65 @@ class CostumeCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     costume.name,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, height: 1.25),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    costume.storeName.isNotEmpty
-                        ? '${costume.storeName}${costume.city.isEmpty ? '' : ' · ${costume.city}'}'
-                        : costume.anime,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Icon(Icons.place_outlined, size: 13, color: muted),
+                      const SizedBox(width: 2),
+                      Expanded(
+                        child: Text(
+                          place.isEmpty ? costume.anime : place,
+                          style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    costume.hasPrice
-                        ? 'Rp ${formatter.format(costume.price.toInt())} / ${costume.durationDays} hari'
-                        : 'Harga belum diinformasikan',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.primary,
-                    ),
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Flexible(
+                        child: Text.rich(
+                          costume.hasPrice
+                              ? TextSpan(children: [
+                                  TextSpan(
+                                    text: 'Rp${_price.format(costume.price.toInt())}',
+                                    style: TextStyle(fontWeight: FontWeight.w700, color: theme.colorScheme.primary),
+                                  ),
+                                  TextSpan(
+                                    text: ' /${costume.durationDays} hari',
+                                    style: TextStyle(color: muted, fontSize: 11),
+                                  ),
+                                ])
+                              : TextSpan(text: 'Tanya harga', style: TextStyle(color: muted)),
+                          style: theme.textTheme.bodyMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (costume.sizes.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          costume.sizes.length > 3
+                              ? '${costume.sizes.take(3).join('·')}+'
+                              : costume.sizes.join('·'),
+                          style: theme.textTheme.labelSmall?.copyWith(color: muted),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -195,6 +176,19 @@ class CostumeCard extends StatelessWidget {
       ),
     );
   }
+}
+
+final _price = NumberFormat.decimalPattern('id_ID');
+
+class _NoPhoto extends StatelessWidget {
+  const _NoPhoto({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Icon(Icons.checkroom_outlined, size: 40, color: color),
+      );
 }
 
 /// The existing square-photo card, extended with public store/price metadata.

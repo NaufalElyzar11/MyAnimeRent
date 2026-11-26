@@ -13,7 +13,9 @@ import '../providers/rental_provider.dart';
 import '../providers/wishlist_provider.dart';
 import '../services/database_service.dart';
 import '../services/supabase_service.dart';
+import '../config/theme.dart';
 import '../widgets/expandable_calendar_view.dart';
+import '../widgets/ui_kit.dart';
 
 final _rupiah = NumberFormat.decimalPattern('id_ID');
 String rupiah(num v) => 'Rp ${_rupiah.format(v)}';
@@ -170,8 +172,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (sheetContext) => _RequestSheet(
         costume: _costume!,
         size: _variant?.size,
@@ -213,25 +213,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
+  final _calendarKey = GlobalKey();
+
+  /// Tombol bawah ditekan sebelum memilih tanggal: gulir ke kalender.
+  void _goToCalendar() {
+    final ctx = _calendarKey.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 400), curve: Curves.easeOut, alignment: 0.1);
+    }
+    _snack('Ketuk tanggal mulai di kalender.');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const _DetailSkeleton(),
+      );
+    }
     final costume = _costume;
     if (costume == null) {
       return Scaffold(
         appBar: AppBar(),
         body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_error ?? 'Kostum ini tidak tersedia atau sudah ditarik toko.', textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                if (_error != null) OutlinedButton(onPressed: _load, child: const Text('Coba lagi')),
-              ],
-            ),
+          child: EmptyState(
+            icon: _error != null ? Icons.wifi_off_rounded : Icons.search_off_rounded,
+            title: _error != null ? 'Kostum belum bisa dimuat' : 'Kostum tidak tersedia',
+            message: _error != null
+                ? 'Periksa koneksi lalu coba lagi.'
+                : 'Kostum ini sudah ditarik toko atau tautannya tidak berlaku lagi.',
+            actionLabel: _error != null ? 'Coba lagi' : 'Cari kostum lain',
+            onAction: _error != null ? _load : () => context.go('/search'),
           ),
         ),
       );
@@ -241,112 +255,121 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final availability = _availability;
     final variantAv = _variantAvailability;
     final rangeDays = costume.durationDays ?? 3;
-    final canRequest = _startDate != null && !_isSending && _dateStatus != 'booked' && (variantAv?.rentable ?? true);
+    final blocked = _dateStatus == 'booked' || !(variantAv?.rentable ?? true);
+    final media = MediaQuery.sizeOf(context);
+    final galleryHeight = media.width.clamp(240.0, media.height * 0.55 < 240 ? 240.0 : media.height * 0.55);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final tags = [costume.character, costume.anime].where((s) => s.isNotEmpty && s != 'Lainnya').toSet().toList();
 
     return Scaffold(
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: _load,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 380,
-                    child: costume.imageUrls.isEmpty
-                        ? Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: const Center(child: Icon(Icons.image_not_supported, size: 60)),
-                          )
-                        : PageView.builder(
-                            itemCount: costume.imageUrls.length,
-                            itemBuilder: (_, i) => CachedNetworkImage(
-                              imageUrl: costume.imageUrls[i],
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              errorWidget: (_, _, _) => Container(
-                                color: theme.colorScheme.surfaceContainerHighest,
-                                child: const Icon(Icons.image_not_supported, size: 60),
-                              ),
-                            ),
-                          ),
+      bottomNavigationBar: _BookingBar(
+        costume: costume,
+        days: _days,
+        sending: _isSending,
+        blocked: blocked,
+        hasDates: _startDate != null,
+        onPressed: _startDate == null ? _goToCalendar : _startRequest,
+      ),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        edgeOffset: galleryHeight,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              stretch: true,
+              expandedHeight: galleryHeight,
+              backgroundColor: theme.scaffoldBackgroundColor,
+              leading: Padding(
+                padding: const EdgeInsets.all(6),
+                child: _CircleButton(
+                  icon: Icons.arrow_back,
+                  tooltip: 'Kembali',
+                  onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
+                ),
+              ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: _CircleButton(
+                    icon: wishlisted ? Icons.favorite : Icons.favorite_border,
+                    color: wishlisted ? AppColors.pink : null,
+                    tooltip: wishlisted ? 'Hapus dari favorit' : 'Simpan ke favorit',
+                    onPressed: _toggleWishlist,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(costume.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text(
-                          [costume.character, costume.anime].where((s) => s.isNotEmpty && s != 'Lainnya').join(' · '),
-                          style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary),
-                        ),
-                        const SizedBox(height: 12),
-                        if (costume.hasPrice)
-                          Text(
-                            '${rupiah(costume.price)} / ${costume.durationDays} hari',
-                            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                          )
-                        else
-                          Text('Harga belum diinformasikan', style: theme.textTheme.titleMedium),
-                        if (costume.depositIdr > 0)
-                          Text('Deposit ${rupiah(costume.depositIdr)} (dikembalikan setelah kostum kembali)',
-                              style: theme.textTheme.bodySmall),
-                        const SizedBox(height: 16),
-                        _StoreBox(costume: costume, onContact: () => _contactStore(costume)),
-                        if (costume.description.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Text('Deskripsi', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text(costume.description, style: theme.textTheme.bodyLarge),
+                ),
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                background: _Gallery(images: costume.imageUrls, title: costume.name),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.page, 16, AppSpacing.page, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (tags.isNotEmpty)
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [for (final t in tags) _Tag(text: t)],
+                      ),
+                    const SizedBox(height: 8),
+                    Text(costume.name, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 10),
+                    _PriceBlock(costume: costume),
+                    const SizedBox(height: 16),
+                    _StoreBox(costume: costume, onContact: () => _contactStore(costume)),
+                    const SizedBox(height: AppSpacing.section),
+                    const SectionHeader(title: 'Pilih ukuran'),
+                    if (costume.variants.isEmpty)
+                      Text('Ukuran belum diinformasikan. Tanyakan lewat catatan saat mengajukan.',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: muted))
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final v in costume.variants)
+                            ChoiceChip(
+                              label: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                child: Text(v.size),
+                              ),
+                              showCheckmark: false,
+                              selected: _variant?.id == v.id,
+                              onSelected: (availability?.forVariant(v.id)?.rentable ?? true)
+                                  ? (_) => setState(() {
+                                        _variant = v;
+                                        _resetDates();
+                                      })
+                                  : null,
+                            ),
                         ],
-                        if (costume.packageContents.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Text('Isi paket', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          for (final item in costume.packageContents) Text('• $item'),
-                        ],
-                        const SizedBox(height: 20),
-                        Text('Pilih ukuran', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        if (costume.variants.isEmpty)
-                          const Text('Ukuran belum diinformasikan')
-                        else
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: [
-                              for (final v in costume.variants)
-                                ChoiceChip(
-                                  label: Text(v.size),
-                                  selected: _variant?.id == v.id,
-                                  onSelected: (availability?.forVariant(v.id)?.rentable ?? true)
-                                      ? (_) => setState(() {
-                                            _variant = v;
-                                            _resetDates();
-                                          })
-                                      : null,
-                                ),
-                            ],
-                          ),
-                        if (costume.sizeNotes != null && costume.sizeNotes!.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(costume.sizeNotes!, style: theme.textTheme.bodySmall),
-                        ],
-                        if (variantAv != null && !variantAv.rentable)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Text('Ukuran ini sedang tidak disewakan.', style: TextStyle(color: Colors.red.shade700)),
-                          ),
-                        const SizedBox(height: 24),
-                        Text('Pilih tanggal sewa', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
-                        _CalendarNote(availability: availability),
-                        const SizedBox(height: 8),
-                        ExpandableCalendarView(
+                      ),
+                    if (costume.sizeNotes != null && costume.sizeNotes!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      InfoBanner(icon: Icons.straighten, text: costume.sizeNotes!),
+                    ],
+                    if (variantAv != null && !variantAv.rentable)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text('Ukuran ini sedang tidak disewakan.',
+                            style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w600)),
+                      ),
+                    const SizedBox(height: AppSpacing.section),
+                    SectionHeader(
+                      key: _calendarKey,
+                      title: 'Pilih tanggal sewa',
+                      subtitle: 'Ketuk tanggal mulai, otomatis $rangeDays hari',
+                    ),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+                        child: ExpandableCalendarView(
                           bookedDates: variantAv?.bookedDateKeys ?? const [],
                           selectedStartDate: _startDate,
                           selectedEndDate: _endDate,
@@ -354,87 +377,111 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           onDateRangeSelected: _setRange,
                           onSelectionInvalid: (msg) => _snack(msg, error: true),
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _startDate == null
-                                    ? 'Ketuk tanggal mulai (paket $rangeDays hari)'
-                                    : '${DateFormat('d MMM', 'id_ID').format(_startDate!)} – '
-                                        '${DateFormat('d MMM yyyy', 'id_ID').format(_endDate!)} ($_days hari)',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: _startDate != null ? theme.colorScheme.primary : null,
-                                ),
-                              ),
-                            ),
-                            TextButton.icon(
-                              onPressed: _pickCustomRange,
-                              icon: const Icon(Icons.date_range, size: 18),
-                              label: const Text('Ubah rentang'),
-                            ),
-                          ],
-                        ),
-                        if (_startDate != null) _DateStatus(checking: _checkingDates, status: _dateStatus),
-                        const SizedBox(height: 110),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    _SelectionSummary(
+                      start: _startDate,
+                      end: _endDate,
+                      days: _days,
+                      onCustom: _pickCustomRange,
+                      onClear: _startDate == null ? null : () => setState(_resetDates),
+                    ),
+                    if (_startDate != null) _DateStatus(checking: _checkingDates, status: _dateStatus),
+                    const SizedBox(height: 10),
+                    _CalendarNote(availability: availability),
+                    if (costume.packageContents.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.section),
+                      const SectionHeader(title: 'Isi paket'),
+                      for (final item in costume.packageContents)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.check_circle_rounded, size: 18, color: AppColors.success),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(item)),
+                            ],
+                          ),
+                        ),
+                    ],
+                    if (costume.description.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.section),
+                      const SectionHeader(title: 'Deskripsi'),
+                      _ExpandableText(text: costume.description),
+                    ],
+                    const SizedBox(height: AppSpacing.section),
+                    const InfoBanner(
+                      icon: Icons.verified_user_outlined,
+                      text: 'Mengajukan sewa belum berarti membayar. Toko mengonfirmasi dulu, '
+                          'lalu pembayaran & pengambilan diatur bersama toko.',
+                    ),
+                  ],
+                ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CircleButton extends StatelessWidget {
+  const _CircleButton({required this.icon, required this.tooltip, required this.onPressed, this.color});
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.white.withValues(alpha: 0.92),
+        shape: const CircleBorder(),
+        elevation: 1,
+        child: IconButton(
+          tooltip: tooltip,
+          onPressed: onPressed,
+          icon: Icon(icon, color: color ?? Colors.black87, size: 22),
+        ),
+      );
+}
+
+/// Foto kostum: geser antar foto, ketuk untuk memperbesar.
+class _Gallery extends StatefulWidget {
+  const _Gallery({required this.images, required this.title});
+  final List<String> images;
+  final String title;
+
+  @override
+  State<_Gallery> createState() => _GalleryState();
+}
+
+class _GalleryState extends State<_Gallery> {
+  int _page = 0;
+
+  void _openFull(int index) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black,
+      builder: (ctx) => Stack(
+        children: [
+          PageView.builder(
+            controller: PageController(initialPage: index),
+            itemCount: widget.images.length,
+            itemBuilder: (_, i) => InteractiveViewer(
+              maxScale: 4,
+              child: Center(child: CachedNetworkImage(imageUrl: widget.images[i], fit: BoxFit.contain)),
             ),
           ),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Colors.white.withValues(alpha: 0.85),
-                    child: IconButton(
-                      tooltip: 'Kembali',
-                      icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                      onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
-                    ),
-                  ),
-                  CircleAvatar(
-                    backgroundColor: Colors.white.withValues(alpha: 0.85),
-                    child: IconButton(
-                      tooltip: wishlisted ? 'Hapus dari wishlist' : 'Simpan ke wishlist',
-                      icon: Icon(wishlisted ? Icons.favorite : Icons.favorite_border,
-                          color: wishlisted ? Colors.red : Colors.black87),
-                      onPressed: _toggleWishlist,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              color: theme.scaffoldBackgroundColor,
-              child: SafeArea(
-                top: false,
-                child: SizedBox(
-                  height: 52,
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: canRequest ? _startRequest : null,
-                    child: _isSending
-                        ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
-                          )
-                        : Text(_startDate == null ? 'Pilih tanggal dulu' : 'Ajukan sewa', style: const TextStyle(fontSize: 17)),
-                  ),
-                ),
+            child: Align(
+              alignment: Alignment.topRight,
+              child: IconButton(
+                tooltip: 'Tutup',
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.pop(ctx),
               ),
             ),
           ),
@@ -442,6 +489,312 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (widget.images.isEmpty) {
+      return Container(
+        color: theme.colorScheme.surfaceContainerHighest,
+        child: Icon(Icons.checkroom_outlined, size: 72, color: theme.colorScheme.onSurfaceVariant),
+      );
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        PageView.builder(
+          itemCount: widget.images.length,
+          onPageChanged: (i) => setState(() => _page = i),
+          itemBuilder: (_, i) => GestureDetector(
+            onTap: () => _openFull(i),
+            child: CachedNetworkImage(
+              imageUrl: widget.images[i],
+              fit: BoxFit.cover,
+              width: double.infinity,
+              placeholder: (_, _) => Container(color: theme.colorScheme.surfaceContainerHighest),
+              errorWidget: (_, _, _) => Container(
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: const Icon(Icons.image_not_supported_outlined, size: 60),
+              ),
+            ),
+          ),
+        ),
+        if (widget.images.length > 1)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 14,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 0; i < widget.images.length; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: i == _page ? 18 : 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: i == _page ? 1 : 0.6),
+                      borderRadius: BorderRadius.circular(4),
+                      boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  const _Tag({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.purple.withValues(alpha: theme.brightness == Brightness.dark ? 0.3 : 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(text,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.brightness == Brightness.dark ? const Color(0xFFC9B3FF) : AppColors.purple,
+            fontWeight: FontWeight.w600,
+          )),
+    );
+  }
+}
+
+class _PriceBlock extends StatelessWidget {
+  const _PriceBlock({required this.costume});
+  final Costume costume;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    if (!costume.hasPrice) {
+      return Text('Harga belum dicantumkan — toko akan memberi penawaran.',
+          style: theme.textTheme.bodyMedium?.copyWith(color: muted));
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text.rich(TextSpan(children: [
+          TextSpan(
+            text: rupiah(costume.price),
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.primary),
+          ),
+          TextSpan(text: '  / ${costume.durationDays} hari', style: theme.textTheme.bodyMedium?.copyWith(color: muted)),
+        ])),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 14,
+          runSpacing: 4,
+          children: [
+            if ((costume.extraDayIdr ?? 0) > 0)
+              _Fact(icon: Icons.add_circle_outline, text: 'Tambah hari ${rupiah(costume.extraDayIdr!)}/hari'),
+            _Fact(
+              icon: Icons.shield_outlined,
+              text: costume.depositIdr > 0 ? 'Deposit ${rupiah(costume.depositIdr)} (kembali)' : 'Tanpa deposit',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _Fact extends StatelessWidget {
+  const _Fact({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 4),
+        Text(text, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+      ],
+    );
+  }
+}
+
+class _SelectionSummary extends StatelessWidget {
+  const _SelectionSummary({
+    required this.start,
+    required this.end,
+    required this.days,
+    required this.onCustom,
+    required this.onClear,
+  });
+  final DateTime? start;
+  final DateTime? end;
+  final int days;
+  final VoidCallback onCustom;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final picked = start != null && end != null;
+    return Row(
+      children: [
+        Icon(Icons.event_note_outlined, size: 20, color: picked ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            picked
+                ? '${DateFormat('EEE, d MMM', 'id_ID').format(start!)} – '
+                    '${DateFormat('EEE, d MMM', 'id_ID').format(end!)} · $days hari'
+                : 'Belum memilih tanggal',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: picked ? FontWeight.w600 : FontWeight.normal,
+              color: picked ? null : theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        if (onClear != null) IconButton(tooltip: 'Hapus pilihan', onPressed: onClear, icon: const Icon(Icons.close, size: 20)),
+        TextButton(onPressed: onCustom, child: Text(picked ? 'Ubah' : 'Rentang lain')),
+      ],
+    );
+  }
+}
+
+class _ExpandableText extends StatefulWidget {
+  const _ExpandableText({required this.text});
+  final String text;
+
+  @override
+  State<_ExpandableText> createState() => _ExpandableTextState();
+}
+
+class _ExpandableTextState extends State<_ExpandableText> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final long = widget.text.length > 220 || '\n'.allMatches(widget.text).length > 3;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.text,
+          maxLines: _open || !long ? null : 4,
+          overflow: _open || !long ? null : TextOverflow.ellipsis,
+          style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+        ),
+        if (long)
+          TextButton(
+            style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(48, 36)),
+            onPressed: () => setState(() => _open = !_open),
+            child: Text(_open ? 'Lebih sedikit' : 'Selengkapnya'),
+          ),
+      ],
+    );
+  }
+}
+
+/// Bar bawah: harga/perkiraan + tombol utama yang selalu terlihat.
+class _BookingBar extends StatelessWidget {
+  const _BookingBar({
+    required this.costume,
+    required this.days,
+    required this.sending,
+    required this.blocked,
+    required this.hasDates,
+    required this.onPressed,
+  });
+  final Costume costume;
+  final int days;
+  final bool sending;
+  final bool blocked;
+  final bool hasDates;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final String label;
+    final String value;
+    if (!costume.hasPrice) {
+      label = 'Harga';
+      value = 'Tanya toko';
+    } else if (hasDates && days > 0) {
+      label = 'Perkiraan · $days hari';
+      value = rupiah(costume.estimateRent(days));
+    } else {
+      label = 'Mulai dari';
+      value = '${rupiah(costume.price)} / ${costume.durationDays} hari';
+    }
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.page, 10, AppSpacing.page, 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: theme.textTheme.labelSmall?.copyWith(color: muted)),
+                    Text(value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: sending || (hasDates && blocked) ? null : onPressed,
+                style: FilledButton.styleFrom(minimumSize: const Size(150, 50)),
+                child: sending
+                    ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                    : Text(!hasDates ? 'Pilih tanggal' : (blocked ? 'Tidak tersedia' : 'Ajukan sewa')),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailSkeleton extends StatelessWidget {
+  const _DetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(AppSpacing.page),
+        children: const [
+          SkeletonBox(height: 300, radius: 20),
+          SizedBox(height: 16),
+          SkeletonBox(width: 120, height: 20, radius: 10),
+          SizedBox(height: 10),
+          SkeletonBox(width: 260, height: 26, radius: 8),
+          SizedBox(height: 10),
+          SkeletonBox(width: 180, height: 22, radius: 8),
+          SizedBox(height: 20),
+          SkeletonBox(height: 72, radius: 16),
+        ],
+      );
 }
 
 class _StoreBox extends StatelessWidget {
@@ -452,40 +805,48 @@ class _StoreBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.storefront, size: 32, color: theme.colorScheme.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(costume.storeName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                Text(costume.city, style: theme.textTheme.bodySmall),
-                if (costume.storeWhatsapp != null)
-                  InkWell(
-                    onTap: onContact,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text('Tanya via WhatsApp',
-                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary)),
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('store-profile'),
+        onTap: () => context.push('/store_detail/${costume.storeId}'),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              StoreAvatar(name: costume.storeName, size: 44),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(costume.storeName, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
+                    Row(
+                      children: [
+                        Icon(Icons.place_outlined, size: 14, color: theme.colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 2),
+                        Flexible(
+                          child: Text(costume.city,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                        ),
+                      ],
                     ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
+              ),
+              if (costume.storeWhatsapp != null)
+                IconButton.filledTonal(
+                  tooltip: 'Tanya via WhatsApp',
+                  onPressed: onContact,
+                  icon: const Icon(Icons.chat_outlined, size: 20),
+                ),
+              const Icon(Icons.chevron_right),
+            ],
           ),
-          TextButton(
-            key: const ValueKey('store-profile'),
-            onPressed: () => context.push('/store_detail/${costume.storeId}'),
-            child: const Text('Lihat toko'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -512,7 +873,11 @@ class _CalendarNote extends StatelessWidget {
           'tetap dikonfirmasi toko.'
           '${updated == null ? '' : ' Kalender diperbarui ${_ago(updated)}.'}';
     }
-    return Text(text, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant));
+    return InfoBanner(
+      icon: a != null && a.calendarActive ? Icons.info_outline : Icons.help_outline,
+      text: text,
+      color: a != null && a.calendarActive ? theme.colorScheme.secondary : AppColors.warning,
+    );
   }
 
   static String _ago(DateTime t) {
@@ -593,61 +958,98 @@ class _RequestSheetState extends State<_RequestSheet> {
     final c = widget.costume;
     final days = widget.end.difference(widget.start).inDays + 1;
     final rent = c.estimateRent(days);
+    final muted = theme.colorScheme.onSurfaceVariant;
     final dateText = '${DateFormat('EEE, d MMM', 'id_ID').format(widget.start)} – '
         '${DateFormat('EEE, d MMM yyyy', 'id_ID').format(widget.end)}';
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      padding: EdgeInsets.fromLTRB(20, 0, 20, MediaQuery.of(context).viewInsets.bottom + 20),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Ajukan sewa', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            Text('Ajukan sewa', style: theme.textTheme.titleLarge),
             const SizedBox(height: 12),
-            Text(c.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-            Text('${c.storeName} · Ukuran ${widget.size ?? '-'}'),
-            Text('$dateText ($days hari)'),
-            const Divider(height: 24),
-            if (c.hasPrice) ...[
-              _row('Perkiraan sewa', rupiah(rent)),
-              if (days > (c.durationDays ?? days))
-                Text('Paket ${c.durationDays} hari + ${days - c.durationDays!} hari tambahan',
-                    style: theme.textTheme.bodySmall),
-              if (c.depositIdr > 0) _row('Deposit (dikembalikan)', rupiah(c.depositIdr)),
-              const SizedBox(height: 4),
-              Text('Harga final dikonfirmasi toko. Pembayaran diatur langsung dengan toko.',
-                  style: theme.textTheme.bodySmall),
-            ] else
-              const Text('Toko belum mencantumkan harga; toko akan mengirim penawaran.'),
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: c.imageUrls.isEmpty
+                        ? Container(color: theme.colorScheme.surfaceContainerHighest, child: const Icon(Icons.checkroom))
+                        : CachedNetworkImage(imageUrl: c.imageUrls.first, fit: BoxFit.cover),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(c.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleSmall),
+                      Text('${c.storeName} · Ukuran ${widget.size ?? '-'}',
+                          style: theme.textTheme.bodySmall?.copyWith(color: muted)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+              ),
+              child: Column(
+                children: [
+                  _row('Tanggal', '$dateText ($days hari)'),
+                  if (c.hasPrice) ...[
+                    _row('Perkiraan sewa', rupiah(rent)),
+                    if (days > (c.durationDays ?? days))
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text('Paket ${c.durationDays} hari + ${days - c.durationDays!} hari tambahan',
+                            style: theme.textTheme.labelSmall?.copyWith(color: muted)),
+                      ),
+                    if (c.depositIdr > 0) _row('Deposit (kembali)', rupiah(c.depositIdr)),
+                  ] else
+                    _row('Harga', 'Toko akan memberi penawaran'),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: _note,
               maxLength: 500,
               maxLines: 3,
+              minLines: 2,
               decoration: const InputDecoration(
                 labelText: 'Catatan untuk toko (opsional)',
                 hintText: 'Mis. untuk event apa, ambil/kirim, pertanyaan ukuran',
               ),
             ),
-            CheckboxListTile(
+            SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: _consent,
-              onChanged: (v) => setState(() => _consent = v ?? false),
-              title: const Text('Izinkan toko melihat nama & nomor HP saya'),
-              subtitle: widget.hasPhone ? null : const Text('Nomor HP belum diisi di profil.'),
+              onChanged: (v) => setState(() => _consent = v),
+              title: const Text('Bagikan nama & nomor HP ke toko'),
+              subtitle: Text(widget.hasPhone
+                  ? 'Memudahkan toko menghubungimu setelah dikonfirmasi.'
+                  : 'Nomor HP belum diisi di Profil.'),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Ini permintaan, bukan booking. Tanggal baru terkunci setelah toko mengonfirmasi; '
-              'kabarnya muncul di menu Permintaan Sewa dan notifikasi.',
-              style: theme.textTheme.bodySmall,
+            const SizedBox(height: 4),
+            const InfoBanner(
+              icon: Icons.info_outline,
+              text: 'Ini permintaan, bukan pembayaran. Tanggal baru terkunci setelah toko mengonfirmasi; '
+                  'kabarnya muncul di Permintaan Sewa dan notifikasi.',
             ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
+              child: FilledButton(
                 onPressed: widget.sending ? null : () => widget.onSubmit(_note.text, _consent),
                 child: const Text('Kirim permintaan'),
               ),
@@ -659,10 +1061,16 @@ class _RequestSheetState extends State<_RequestSheet> {
   }
 
   Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 3),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [Text(label), Text(value, style: const TextStyle(fontWeight: FontWeight.w600))],
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(value, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ],
         ),
       );
 }
