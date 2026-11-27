@@ -69,7 +69,7 @@ class StoreCatalogService {
       Backend.call('catalog', 'save_product', {
         'operation_id': operationId,
         if (productId == null) 'store_id': storeId,
-        if (productId != null) 'product_id': productId,
+        'product_id': ?productId,
         if (productId != null) 'expected_revision': expectedRevision,
         'product': product,
       });

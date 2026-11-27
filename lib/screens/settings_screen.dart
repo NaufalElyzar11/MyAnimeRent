@@ -55,6 +55,14 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             const Divider(),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: settings.animeEffects,
+              onChanged: settings.setAnimeEffects,
+              title: const Text('Efek animasi anime'),
+              subtitle: const Text('Ledakan kecil, kilau, dan toast meluncur di momen penting.'),
+            ),
+            const Divider(),
             _SettingRow(
               label: 'Bahasa',
               currentValue: 'Indonesia',

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/costume.dart';
 import 'costume_card.dart';
+import 'sakuga.dart';
 
 /// Komponen kecil yang dipakai bersama layar penyewa agar tampilannya seragam.
 
@@ -70,13 +71,17 @@ class EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 84,
-            height: 84,
-            decoration: const BoxDecoration(gradient: AppColors.softGradient, shape: BoxShape.circle),
-            child: Icon(icon, size: 40, color: theme.colorScheme.primary),
+          SpeedLines(
+            size: 150,
+            opacity: 0.08,
+            child: Container(
+              width: 84,
+              height: 84,
+              decoration: const BoxDecoration(gradient: AppColors.softGradient, shape: BoxShape.circle),
+              child: Icon(icon, size: 40, color: theme.colorScheme.primary),
+            ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 4),
           Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
           if (message != null) ...[
             const SizedBox(height: 6),

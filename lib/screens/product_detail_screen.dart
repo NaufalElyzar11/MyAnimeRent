@@ -15,6 +15,7 @@ import '../services/database_service.dart';
 import '../services/supabase_service.dart';
 import '../config/theme.dart';
 import '../widgets/expandable_calendar_view.dart';
+import '../widgets/sakuga.dart';
 import '../widgets/ui_kit.dart';
 
 final _rupiah = NumberFormat.decimalPattern('id_ID');
@@ -147,7 +148,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       context.push('/login?from=${Uri.encodeComponent('/detail/${widget.costumeId}')}');
       return;
     }
-    _snack(result ? 'Disimpan ke wishlist' : 'Dihapus dari wishlist');
+    if (result) {
+      Sakuga.burst(context, anchor: _heartKey, scale: 0.55, word: 'キラッ');
+      Sakuga.toast(context, 'Disimpan ke favorit', icon: Icons.favorite);
+    } else {
+      _snack('Dihapus dari favorit');
+    }
   }
 
   Future<void> _contactStore(Costume c) async {
@@ -201,8 +207,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           );
       if (!mounted) return;
       setState(_resetDates);
-      _snack('Permintaan ${created.requestCode} terkirim. Toko akan memberi kabar di aplikasi.');
       context.push('/requests/${created.requestId}');
+      // Efek ditampilkan setelah halaman baru dipasang agar tidak tertutup olehnya.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Sakuga.burst(context, anchor: _bookKey, word: 'ドン!');
+        Sakuga.toast(context, 'Permintaan ${created.requestCode} terkirim. Toko akan memberi kabar di aplikasi.');
+      });
     } on ApiException catch (e) {
       if (!mounted) return;
       // Gangguan jaringan: kunci yang sama dipakai lagi agar tidak terkirim dua kali.
@@ -214,6 +225,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   final _calendarKey = GlobalKey();
+  final _heartKey = GlobalKey();
+  final _bookKey = GlobalKey();
 
   /// Tombol bawah ditekan sebelum memilih tanggal: gulir ke kalender.
   void _goToCalendar() {
@@ -263,6 +276,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     return Scaffold(
       bottomNavigationBar: _BookingBar(
+        buttonKey: _bookKey,
         costume: costume,
         days: _days,
         sending: _isSending,
@@ -293,6 +307,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 Padding(
                   padding: const EdgeInsets.all(6),
                   child: _CircleButton(
+                    key: _heartKey,
                     icon: wishlisted ? Icons.favorite : Icons.favorite_border,
                     color: wishlisted ? AppColors.pink : null,
                     tooltip: wishlisted ? 'Hapus dari favorit' : 'Simpan ke favorit',
@@ -429,7 +444,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 }
 
 class _CircleButton extends StatelessWidget {
-  const _CircleButton({required this.icon, required this.tooltip, required this.onPressed, this.color});
+  const _CircleButton({super.key, required this.icon, required this.tooltip, required this.onPressed, this.color});
   final IconData icon;
   final String tooltip;
   final VoidCallback onPressed;
@@ -707,6 +722,7 @@ class _ExpandableTextState extends State<_ExpandableText> {
 /// Bar bawah: harga/perkiraan + tombol utama yang selalu terlihat.
 class _BookingBar extends StatelessWidget {
   const _BookingBar({
+    required this.buttonKey,
     required this.costume,
     required this.days,
     required this.sending,
@@ -714,6 +730,7 @@ class _BookingBar extends StatelessWidget {
     required this.hasDates,
     required this.onPressed,
   });
+  final GlobalKey buttonKey;
   final Costume costume;
   final int days;
   final bool sending;
@@ -762,12 +779,15 @@ class _BookingBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              FilledButton(
+              SakugaPressable(
+                key: buttonKey,
+                child: FilledButton(
                 onPressed: sending || (hasDates && blocked) ? null : onPressed,
                 style: FilledButton.styleFrom(minimumSize: const Size(150, 50)),
                 child: sending
                     ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
                     : Text(!hasDates ? 'Pilih tanggal' : (blocked ? 'Tidak tersedia' : 'Ajukan sewa')),
+                ),
               ),
             ],
           ),
@@ -1047,11 +1067,13 @@ class _RequestSheetState extends State<_RequestSheet> {
                   'kabarnya muncul di Permintaan Sewa dan notifikasi.',
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: widget.sending ? null : () => widget.onSubmit(_note.text, _consent),
-                child: const Text('Kirim permintaan'),
+            SakugaPressable(
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: widget.sending ? null : () => widget.onSubmit(_note.text, _consent),
+                  child: const Text('Kirim permintaan'),
+                ),
               ),
             ),
           ],

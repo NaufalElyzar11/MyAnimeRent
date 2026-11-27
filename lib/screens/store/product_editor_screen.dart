@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/store_catalog.dart';
 import '../../services/store_catalog_service.dart';
 import '../../services/supabase_service.dart';
+import '../../widgets/sakuga.dart';
 import 'store_catalog_tab.dart' show ProductStatusChip;
 
 const _quickSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'All size'];
@@ -267,6 +268,8 @@ class _ProductEditorScreenState extends State<ProductEditorScreen> {
     }
   }
 
+  final _statusButtonKey = GlobalKey();
+
   Future<void> _setStatus(String action, String success) async {
     if (_dirty || _isNew) {
       if (!await _save(announce: false)) return;
@@ -280,7 +283,12 @@ class _ProductEditorScreenState extends State<ProductEditorScreen> {
         _status = r['status']?.toString() ?? _status;
         _revision = (r['revision'] as num?)?.toInt() ?? _revision;
       });
-      _snack(success);
+      if (action == 'publish_product' && mounted) {
+        Sakuga.burst(context, anchor: _statusButtonKey, word: 'ドン!');
+        Sakuga.toast(context, success);
+      } else {
+        _snack(success);
+      }
       await _refreshServerState();
     } on ApiException catch (e) {
       _snack(_errorText(e), error: true);
@@ -754,7 +762,7 @@ class _ProductEditorScreenState extends State<ProductEditorScreen> {
   }
 
   Widget _bottomBar(ThemeData theme) {
-    final (String label, VoidCallback? onPressed) = switch (_status) {
+    final (String label, VoidCallback onPressed) = switch (_status) {
       'published' => ('Tarik dari publik', () => _setStatus('unpublish_product', 'Listing ditarik dari publik.')),
       'archived' => ('Pulihkan ke draft', () => _setStatus('restore_product', 'Listing dipulihkan sebagai draft.')),
       _ => ('Terbitkan', _publish),
@@ -772,7 +780,10 @@ class _ProductEditorScreenState extends State<ProductEditorScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: FilledButton(onPressed: _busy || _isNew && _status != 'draft' ? null : onPressed, child: Text(label)),
+              child: SakugaPressable(
+                key: _statusButtonKey,
+                child: FilledButton(onPressed: _busy ? null : onPressed, child: Text(label)),
+              ),
             ),
           ],
         ),

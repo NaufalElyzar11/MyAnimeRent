@@ -63,6 +63,11 @@ Logo dan palet warna MyAnimeRent dirancang untuk merefleksikan semangat kreativi
   - Izin mengikuti peran: owner semua; staf sesuai izin `orders`/`calendar`.
 - ❤️ **Favorit** tersimpan di akun.
 - 🌓 **Tema terang/gelap** dengan Material 3.
+- 💥 **Efek gerak ala anime (sakuga)**, dipakai seperlunya:
+  - Tombol utama memampat dan memantul saat ditekan.
+  - Ledakan kecil + tulisan ドン! saat permintaan terkirim, sewa dikonfirmasi toko, atau listing terbit; ヤッタ! saat penyewa membuka permintaan yang baru dikonfirmasi.
+  - Kilau saat menyimpan favorit, toast yang meluncur, garis konsentrasi manga di halaman kosong.
+  - Bisa dimatikan di **Pengaturan → Efek animasi anime**, dan otomatis mati bila HP memakai "kurangi animasi". Digambar dengan CustomPaint, terinspirasi [sakuga-vfx](https://github.com/finktheartist/sakuga-vfx), tanpa paket tambahan.
 
 ---
 
@@ -103,6 +108,7 @@ lib/
 │   └── push_service.dart     # Token FCM ↔ register_push_token
 ├── screens/                # Beranda, Cari, Detail, Permintaan Sewa, Detail Permintaan, Notifikasi, Profil, …
 │   └── store/              # Tab Toko: kotak permintaan, detail untuk toko, kalender, jadwal per set
+├── widgets/sakuga.dart     # Efek anime: SakugaPressable, Sakuga.burst/toast, PopIn, SpeedLines
 ├── event/                  # Katalog & layar mode event
 └── widgets/
 ```

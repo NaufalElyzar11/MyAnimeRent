@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/app_notification.dart';
@@ -10,6 +11,7 @@ import '../providers/notification_provider.dart';
 import '../providers/rental_provider.dart';
 import '../services/database_service.dart';
 import '../services/supabase_service.dart';
+import '../widgets/sakuga.dart';
 import 'product_detail_screen.dart' show rupiah;
 import 'rental_history_screen.dart' show StatusChip;
 
@@ -82,6 +84,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         _loading = false;
       });
       _markRelatedRead();
+      _celebrateIfAccepted();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -89,6 +92,23 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
         _loading = false;
       });
     }
+  }
+
+  final _summaryKey = GlobalKey();
+
+  /// Sekali per permintaan: momen "dikonfirmasi" dirayakan dengan ledakan kecil ヤッタ!.
+  Future<void> _celebrateIfAccepted() async {
+    final r = _request;
+    if (r == null || r.status != RequestStatus.accepted) return;
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getStringList('celebrated_requests') ?? const <String>[];
+    if (seen.contains(r.id) || !mounted) return;
+    await prefs.setStringList('celebrated_requests', [...seen.skip(seen.length > 40 ? seen.length - 40 : 0), r.id]);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Sakuga.burst(context, anchor: _summaryKey, word: 'ヤッタ!');
+      Sakuga.toast(context, 'Sewa dikonfirmasi! Tanggalmu sudah dikunci toko.', icon: Icons.celebration_outlined);
+    });
   }
 
   void _markRelatedRead() {
@@ -198,7 +218,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
                           controller: _scroll,
                           padding: const EdgeInsets.all(16),
                           children: [
-                            _Summary(request: r, statusText: _statusText(r)),
+                            _Summary(key: _summaryKey, request: r, statusText: _statusText(r)),
                             if (r.status.isOpen)
                               Align(
                                 alignment: Alignment.centerRight,
@@ -269,7 +289,7 @@ class _RequestDetailScreenState extends State<RequestDetailScreen> {
 }
 
 class _Summary extends StatelessWidget {
-  const _Summary({required this.request, required this.statusText});
+  const _Summary({super.key, required this.request, required this.statusText});
   final RentalRequest request;
   final String statusText;
 

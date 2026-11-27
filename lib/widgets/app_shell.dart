@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/store_admin_provider.dart';
+import 'sakuga.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
@@ -62,22 +63,22 @@ class AppShell extends StatelessWidget {
         destinations: [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            selectedIcon: PopIn(child: Icon(Icons.home)),
             label: 'Beranda',
           ),
           NavigationDestination(
             icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search),
+            selectedIcon: PopIn(child: Icon(Icons.search)),
             label: 'Cari',
           ),
           NavigationDestination(
             icon: Icon(Icons.favorite_outline),
-            selectedIcon: Icon(Icons.favorite),
+            selectedIcon: PopIn(child: Icon(Icons.favorite)),
             label: 'Favorit',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+            selectedIcon: PopIn(child: Icon(Icons.person)),
             label: 'Profil',
           ),
           if (showStore)
@@ -87,10 +88,12 @@ class AppShell extends StatelessWidget {
                 label: Text('$openRequests'),
                 child: const Icon(Icons.storefront_outlined),
               ),
-              selectedIcon: Badge(
-                isLabelVisible: openRequests > 0,
-                label: Text('$openRequests'),
-                child: const Icon(Icons.storefront),
+              selectedIcon: PopIn(
+                child: Badge(
+                  isLabelVisible: openRequests > 0,
+                  label: Text('$openRequests'),
+                  child: const Icon(Icons.storefront),
+                ),
               ),
               label: 'Toko',
             ),

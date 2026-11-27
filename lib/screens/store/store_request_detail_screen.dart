@@ -14,6 +14,7 @@ import '../../services/store_admin_service.dart';
 import '../../services/supabase_service.dart';
 import '../product_detail_screen.dart' show rupiah;
 import '../rental_history_screen.dart' show StatusChip;
+import '../../widgets/sakuga.dart';
 
 const declineReasons = {
   'dates_unavailable': 'Tanggal sudah terisi',
@@ -45,6 +46,7 @@ class _StoreRequestDetailScreenState extends State<StoreRequestDetailScreen> {
   String? _pendingConfirmOp;
   NotificationProvider? _notifications;
   int _lastSeen = 0;
+  final _actionsKey = GlobalKey();
 
   @override
   void initState() {
@@ -172,7 +174,10 @@ class _StoreRequestDetailScreenState extends State<StoreRequestDetailScreen> {
     try {
       await _service.confirmRequest(r, unitId: unitId, operationId: _pendingConfirmOp!);
       _pendingConfirmOp = null;
-      _snack('Sewa dikonfirmasi. Tanggal sudah dikunci dan penyewa diberi tahu.');
+      if (mounted) {
+        Sakuga.burst(context, anchor: _actionsKey, word: 'ドン!');
+        Sakuga.toast(context, 'Sewa dikonfirmasi. Tanggal sudah dikunci dan penyewa diberi tahu.');
+      }
       await _load(quiet: true);
       if (mounted) context.read<StoreAdminProvider>().loadRequests();
     } on ApiException catch (e) {
@@ -283,6 +288,7 @@ class _StoreRequestDetailScreenState extends State<StoreRequestDetailScreen> {
                             _Summary(request: r),
                             const SizedBox(height: 12),
                             _Actions(
+                              key: _actionsKey,
                               request: r,
                               busy: _busy,
                               onConfirm: () => _confirm(r),
@@ -426,6 +432,7 @@ class _Summary extends StatelessWidget {
 
 class _Actions extends StatelessWidget {
   const _Actions({
+    super.key,
     required this.request,
     required this.busy,
     required this.onConfirm,

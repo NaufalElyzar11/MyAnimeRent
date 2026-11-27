@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../models/costume.dart';
 import '../providers/wishlist_provider.dart';
 import '../config/theme.dart';
+import 'sakuga.dart';
 import '../event/catalog.dart';
 import '../event/catalog_controller.dart';
 import '../event/contact_service.dart';
@@ -85,18 +86,25 @@ class CostumeCard extends StatelessWidget {
                             customBorder: const CircleBorder(),
                             onTap: () async {
                               final result = await wishlistProvider.toggleWishlist(costume.id);
-                              if (result == null && context.mounted) {
+                              if (!context.mounted) return;
+                              if (result == null) {
                                 // Tamu: favorit tersimpan di akun, jadi minta masuk dulu.
                                 context.push('/login?from=${Uri.encodeComponent('/detail/${costume.id}')}');
+                              } else if (result) {
+                                Sakuga.burst(context, scale: 0.45);
                               }
                             },
                             child: Padding(
                               padding: const EdgeInsets.all(7),
-                              child: Icon(
-                                saved ? Icons.favorite : Icons.favorite_border,
-                                semanticLabel: saved ? 'Hapus dari favorit' : 'Simpan ke favorit',
-                                color: saved ? AppColors.pink : Colors.black87,
-                                size: 18,
+                              child: PopIn(
+                                key: ValueKey(saved),
+                                from: saved ? 0.4 : 1,
+                                child: Icon(
+                                  saved ? Icons.favorite : Icons.favorite_border,
+                                  semanticLabel: saved ? 'Hapus dari favorit' : 'Simpan ke favorit',
+                                  color: saved ? AppColors.pink : Colors.black87,
+                                  size: 18,
+                                ),
                               ),
                             ),
                           ),

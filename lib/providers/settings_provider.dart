@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/preferences_service.dart';
+import '../widgets/sakuga.dart';
 
 enum AppTheme { system, light, dark }
 
@@ -8,6 +9,9 @@ class SettingsProvider extends ChangeNotifier {
   AppTheme _currentTheme = AppTheme.system;
 
   AppTheme get currentTheme => _currentTheme;
+
+  /// Efek gerak bergaya anime (ledakan kecil, toast meluncur, dll.).
+  bool get animeEffects => Sakuga.enabled.value;
 
   ThemeMode get themeMode {
     switch (_currentTheme) {
@@ -26,7 +30,14 @@ class SettingsProvider extends ChangeNotifier {
       (e) => e.name == themeName,
       orElse: () => AppTheme.system,
     );
+    Sakuga.enabled.value = await _prefsService.getAnimeEffects();
     notifyListeners();
+  }
+
+  Future<void> setAnimeEffects(bool on) async {
+    Sakuga.enabled.value = on;
+    notifyListeners();
+    await _prefsService.setAnimeEffects(on);
   }
 
   Future<void> setTheme(AppTheme theme) async {
